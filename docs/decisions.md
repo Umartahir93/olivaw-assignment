@@ -1,200 +1,207 @@
 # Decisions
 
-The main design decisions, why they were made, and what they cost. Each
-one is a trade-off; "Revisit when" says what would change it.
+Each decision with why, what it costs, and when to revisit it. Terms are
+defined in [architecture.md](architecture.md#terms).
 
-## 1. gRPC for robots, REST for people
+## 1. Robots report through gateways
 
-**Decision.** Robots send telemetry over gRPC. Admins and dashboards use a
-REST API.
-
-**Why.** The two clients are different. Robots send many small messages
-from devices: gRPC gives a compact binary format, a typed contract and
-generated clients. People use browsers and scripts: browsers cannot call
-gRPC without a proxy, while REST with JSON works with `curl`, any frontend
-and HTTP caching.
-
-**Cost.** Two contracts and two toolchains (buf, ogen).
-
-## 2. API-first, with generated code
-
-**Decision.** Both contracts live in `apispecs/` and are written before the
-code. Go code is generated into `gen/`; handlers are written by hand.
-
-- gRPC: buf lints the proto (naming plus required doc comments), checks
-  formatting, and fails on breaking changes against `main`.
-- REST: ogen generates models, validation, routing and the server. Handlers
-  in `api/` implement the generated `fleetv1.Handler` interface.
-
-**Why.** The contract is the source of truth. If the spec gains an
-endpoint, the build fails until a handler implements it, so code and spec
-cannot drift. Parameters and bodies are validated from the spec, not by
-hand.
-
-**Cost.** Routing is ogen's, not `net/http`'s; moving away from ogen would
-mean rewriting the server wiring (the handlers would barely change).
-Rules OpenAPI cannot express, like "at most 24 hours between `from` and
-`to`", still need code.
-
-## 3. Unary RPCs, one item per request
-
-**Decision.** `ReportTelemetry` and `ReportFault` are unary calls, each
-carrying exactly one reading or fault.
+**Decision.** Robots never talk to the system; their gateway reports for
+them. Here, the simulator is the gateway.
 
 **Why.**
-- At about 1 message per second per robot, a stream saves almost nothing:
-  the HTTP/2 connection stays open either way.
-- The OK response is the acknowledgement. The robot can delete the reading
-  from its buffer once it gets OK.
-- Unary calls are load-balanced per request. A long-lived stream sticks to
-  one server instance, which matters on Kubernetes.
-- One item per request means no partial failures: a request is either
-  stored or rejected as a whole.
+- The gateway translates many vendors' protocols into one contract.
+- The gateway buffers data while the site is offline.
+- One identity per site instead of one per robot.
 
-**Cost.** After a long outage the robot sends its backlog one call per
-reading (one hour is 3,600 calls).
+**Cost.** Robots are known only through scans. A gateway that is down
+silences all its robots.
 
-**Revisit when** backlogs get large: add a batch method next to the
-existing one, without breaking it.
-
-## 4. Separate methods per intent
-
-**Decision.** State snapshots (`ReportTelemetry`) and faults
-(`ReportFault`) are separate methods. Each snapshot also carries the codes
-of the currently active faults.
-
-**Why.** A snapshot answers "what is the robot's state now"; losing one
-does not matter because the next one replaces it. A fault is something
-that happened once, with its own details. Listing active codes in every
-snapshot means a fault clears itself when its code disappears, without
-needing a "fault cleared" event.
-
-**Cost.** Faults are matched by code only, so two faults with the same
-code merge. A code can show up in a snapshot before its details arrive.
-
-**Revisit when** fault lifecycles matter (who fixed it, how long it took):
-add fault IDs and raised/cleared events.
-
-## 5. Robot identity in metadata
-
-**Decision.** The robot sends its ID in the `x-robot-id` gRPC metadata, not
-in the message. The robot does not send its site or location.
-
-**Why.** Identity belongs to the transport. In production it would come
-from the robot's mTLS client certificate, so a robot could not claim to be
-another one; only the code that reads the metadata would change. Where a
-robot is deployed is decided by people at onboarding, not by the robot.
-
-## 6. Onboarding: serial number in, UUID out
-
-**Decision.** An admin registers a robot with its serial number and
-location (`POST /v1/robots`). The server assigns a UUID as `robotId`, which
-is configured on the robot. Decommissioning is a soft delete.
+## 2. gRPC for gateways, REST for people
 
 **Why.**
-- The server owns the ID, so it is unique and never changes, even if a
-  serial number was entered wrongly.
-- Unregistered and decommissioned robots can be rejected at ingestion.
-- A soft delete keeps the robot's history.
+- Gateways send many small messages: gRPC is compact, typed and generates
+  clients.
+- People use browsers and scripts: browsers cannot call gRPC without a
+  proxy; REST with JSON works everywhere.
 
-**Cost.** One extra step: the UUID has to be put on the robot. Serial
-numbers must be unique across the fleet, which assumes no two vendors
-reuse one.
+**Cost.** Two contracts, two toolchains (buf, ogen).
 
-**Not modelled.** Sites and maps as their own resources, vendor and model,
-certificate issuing. They would come with real multi-site, multi-vendor
-fleets.
+## 3. API-first, with generated code
 
-## 7. Timestamps and deduplication without sequence numbers
+**Decision.** Contracts in `apispecs/` come first. Code is generated into
+`gen/`; handlers are written by hand.
 
-**Decision.** Each reading carries `recorded_at` (robot clock). The server
-stores its own receive time separately. Readings are deduplicated on
-`(robot_id, recorded_at)`, faults on `(robot_id, code, occurred_at)`.
-Timestamps are stored to the microsecond. The first write wins.
+- gRPC: buf lints, checks formatting and fails on breaking changes.
+- REST: ogen generates models, validation, routing and the server; `api/`
+  implements `fleetv1.Handler`.
 
 **Why.**
-- `recorded_at` keeps buffered readings at the time they were taken, not
-  the time they arrived.
-- The server's receive time decides whether a robot is online, because
-  the robot's clock can be wrong.
-- Because retries can deliver a reading twice, a natural key makes
-  resending safe without a sequence number.
+- The contract is the source of truth. A new endpoint breaks the build
+  until it is implemented. Input is validated from the spec.
+- For the sake of simplicity, routing comes from ogen too, so there is no
+  handwritten router and the project moves faster.
 
-**Cost.** This assumes robot clocks are roughly synced (NTP) and that a
-robot takes at most one reading per microsecond. A robot booting with a
-wrong clock produces readings with wrong times.
+**Cost.** For the simplicity of this assignment, ogen's router is used
+instead of a handwritten one. That ties the server to ogen: moving away
+means rewriting the server wiring (handlers barely change). Rules OpenAPI
+cannot express (the 24-hour range) still need code.
 
-## 8. Delivery: buffer, retry, dead-letter queue
+## 4. Two gRPC services, split by intent
 
-**Decision (in the contract; not yet in the simulator).** The robot buffers
-readings while it cannot deliver them and sends them oldest first.
+**Decision.** `GatewayService`: `ListRobots`, `ReportScan`.
+`RobotService`: `ReportMeasurement`, `ReportFault`.
 
-| Response | Robot does |
+**Why.** The robot list changes rarely; measurements arrive every second.
+Separate services stay small and evolve independently.
+
+## 5. Unary calls, one measurement per request
+
+**Decision.** For now the simulator acts as a virtual gateway, and this is a
+bare-minimum implementation: plain unary calls, one measurement per
+request.
+
+**Why.**
+- At about 1 message per second per robot, streaming saves almost nothing.
+- OK is the acknowledgement: the gateway can drop the item from its buffer.
+- Unary calls load-balance per request; streams stick to one instance.
+- No partial failures: a request is stored or rejected as a whole.
+- `ReportScan` sends the full list, so repeating it changes nothing.
+
+**Cost.** 100 robots means about 100 calls per second per gateway. A
+backlog is sent one call per measurement.
+
+## 6. Faults: one event, plus codes in every measurement
+
+**Decision.** `ReportFault` once when a fault appears. Its code is listed
+in every measurement while it is active.
+
+**Why.** A fault clears itself when its code disappears; no "fault cleared"
+event needed.
+
+**Cost.** Faults with the same code merge. A code can appear before its
+details arrive.
+
+**Revisit when** fault lifecycles matter: add fault IDs and
+raised/cleared events.
+
+## 7. Gateway identity in metadata
+
+**Decision.** `x-gateway-id` in the gRPC metadata. A gateway may only
+report for its own robots.
+
+**Why.** Identity belongs to the transport. In production it comes from
+the gateway's mTLS certificate; only the code that reads it changes.
+
+## 8. Serial number as business key, UUID as identity
+
+**Decision.** An admin registers a gateway with serial number, location
+and optional name. Robots are discovered by scans. The system gives each
+a UUID that never changes. After a restart the gateway calls `ListRobots`
+to keep its robots' IDs.
+
+**Why.**
+- Serial numbers are how the outside world recognises things.
+- An ID the system owns is unique and stable.
+- Robots need no admin.
+
+**Cost.** The `gatewayId` must be configured on the gateway. Serial
+numbers must be unique across the fleet. Robots never move between
+gateways.
+
+## 9. No decommissioning, no deleting
+
+**Decision.** Gateways and robots stay once known. A robot missing from a
+scan is kept.
+
+**Why.** Simplicity.
+
+**Cost.** Removed robots still show up, as `offline`.
+
+**Revisit when** fleets change often.
+
+## 10. Idempotency keys instead of sequence numbers
+
+**Decision.** Measurements are keyed by `(robotId, measuredAt)`, faults by
+`(robotId, code, occurredAt)`. A known key returns OK and is not stored
+again. Timestamps are kept to the microsecond. The system stores its own
+`receivedAt` separately.
+
+**Why.**
+- Resending is safe without sequence numbers.
+- `measuredAt` keeps buffered data at its real time.
+- `receivedAt` drives connectivity, because device clocks can be wrong.
+
+**Cost.** Assumes clocks are roughly in sync (NTP).
+
+## 11. Delivery: buffer, retry, dead-letter queue
+
+| Response | Gateway does |
 |---|---|
-| OK | Delete the item from the buffer |
-| `INVALID_ARGUMENT`, `UNAUTHENTICATED` | Drop it and log locally; resending fails the same way |
-| Anything else | Retry up to 3 times with exponential backoff, then move it to a local dead-letter queue, log it and count it in a metric; an alert brings in an operator |
+| OK | Drop the item from its buffer |
+| `INVALID_ARGUMENT`, `UNAUTHENTICATED` | Drop it and log it |
+| Anything else | Retry 3 times with backoff, then dead-letter queue, log, metric, alert |
 
-**Why.** History should have no holes, and one bad item must never block
-the items behind it.
+**Why.** No holes in the history; a bad item never blocks the rest.
 
-**Cost.** Even a short network outage moves items into the dead-letter
-queue and needs a person.
+**Cost.** A short outage already needs a person.
 
-**Revisit when** this gets noisy: alert on the queue's size or age instead
-of each item, and replay items that failed only because the server was
-unreachable automatically.
+**Revisit when** noisy: alert on queue size or age; auto-replay items that
+failed only because the system was unreachable.
 
-## 9. Server-derived connectivity
+## 12. Connectivity derived by the system
 
-**Decision.** `online`, `stale`, `offline` and `never_seen` are computed by
-the server from the last receive time, not reported by the robot.
+**Decision.** `unknown` until first contact, `online` within 5 minutes,
+then `offline`. For gateways and robots.
 
-**Why.** A robot that is offline cannot report that it is offline.
+**Why.** Something offline cannot report it. Both levels show whether a
+whole site or one robot is silent.
 
-## 10. History: 24 hours per request, offset paging
+**Cost.** Up to 5 minutes to notice.
 
-**Decision.** Telemetry and fault history return at most 24 hours per
-request, on any date. Lists use `offset` and `limit` (max 1000) and return
-`hasMore`, not a total count.
+## 13. History: 24 hours per request, offset paging
 
-**Why.** Simple to implement and to use. `hasMore` costs no extra query
-(fetch one row more than asked). A total count would need a `COUNT(*)` on
-a large time-series table for every page.
+**Decision.** At most 24 hours per request, any date. `offset` and `limit`
+(max 1000) with `hasMore`, no total count.
 
-**Cost.** One robot-day at 1 Hz is up to 86,400 readings, so up to 87
-pages. Rows that arrive while a client is paging shift later pages, so
-clients must pass the same `from` and `to` for every page.
+**Why.** Simple. `hasMore` costs no extra query; a total count would.
 
-**Revisit when** dashboards need whole days: add an aggregated endpoint
-(for example one value per minute) or cursor-based paging.
+**Cost.** A robot-day can be 87 pages. Clients must reuse the same `from`
+and `to` while paging.
 
-## 11. Errors as problem details
+**Revisit when** dashboards need whole days: add aggregates or cursors.
 
-**Decision.** REST errors use RFC 9457 problem details
-(`application/problem+json`). This includes the validation errors ogen
-detects itself, through a custom error handler in `cmd/fleet`.
+## 14. Errors as problem details
 
-**Why.** One error format for every endpoint, based on a standard.
+**Decision.** RFC 9457 for all REST errors, including ogen's own
+validation errors.
 
-## 12. One binary for both servers
+**Why.** One standard format.
 
-**Decision.** `cmd/fleet` runs the gRPC and the REST server in one process.
+## 15. Direct calls, no pipeline
 
-**Why.** Simplest to build, run and test while both are small.
+**Decision.** Each measurement is validated, stored and answered within
+its gRPC call. No broker.
 
-**Revisit when** load differs: ingestion and the fleet API can become
-separate binaries that scale independently. The servers are already
-separate files in `cmd/fleet`, and the handlers live in their own
-packages.
+**Why.** Simple to build, run and test.
 
-## 13. Storage (planned)
+**Cost.** Ingestion waits for storage, spikes hit the database, and every
+consumer lives in the same call.
 
-**Decision.** TimescaleDB, PostgreSQL with a time-series extension.
+**Revisit when** load grows: publish to a broker (Kafka, NATS JetStream)
+and let consumers store, track and alert.
 
-**Why.** Telemetry is append-only and time-ordered. TimescaleDB partitions
-it by time, compresses older data into a columnar format and drops data
-after a retention period, while staying PostgreSQL, which is already a
-common choice for the rest of the data (robots, faults). ClickHouse was
-considered; it is faster for fleet-wide analytics but would add a second
-database to run, also on customer hardware.
+## 16. One binary for both servers
+
+**Why.** Simplest while both are small.
+
+**Revisit when** load differs: split ingestion and the fleet API into
+separate binaries.
+
+## 17. Storage: TimescaleDB (planned)
+
+**Why.** Measurements are append-only and time-ordered. TimescaleDB
+partitions by time, compresses old data and expires it, and is still
+PostgreSQL for everything else.
+
+**Not ClickHouse.** Faster for fleet-wide analytics, but a second database
+to run, also on customer hardware.
