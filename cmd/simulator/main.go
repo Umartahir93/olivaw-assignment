@@ -16,18 +16,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
 	gatewayv1 "github.com/umartahir93/olivaw-assignment/gen/gateway/v1"
+	gatewaygrpc "github.com/umartahir93/olivaw-assignment/pkg/gateway/grpc"
 	"github.com/umartahir93/olivaw-assignment/pkg/simulator"
 )
 
 var (
 	server    = flag.String("server", "localhost:9090", "gRPC server address")
-	gatewayID = flag.String("gateway-id", uuid.NewString(), "gatewayId assigned at registration (default: a random one)")
+	restURL   = flag.String("rest", "http://localhost:8080", "REST API base URL, used to register the gateway")
+	gatewayID = flag.String("gateway-id", "", "gatewayId of an already registered gateway (default: register a new one)")
+	location  = flag.String("location", "Simulated site", "location of a newly registered gateway")
 	robots    = flag.Int("robots", 10, "number of simulated robots")
 	interval  = flag.Duration("interval", time.Second, "time between two measurements of one robot")
 	logLevel  slog.Level
@@ -51,7 +53,17 @@ func main() {
 func run() error {
 	flag.Parse()
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel})).With("gateway_id", *gatewayID)
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+
+	if *gatewayID == "" {
+		id, err := register(context.Background(), *restURL, *location)
+		if err != nil {
+			return err
+		}
+		*gatewayID = id
+		log.Info("gateway registered", "gateway_id", id)
+	}
+	log = log.With("gateway_id", *gatewayID)
 
 	conn, err := grpc.NewClient(*server, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -68,11 +80,11 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	// Every call identifies the gateway.
-	ctx = metadata.AppendToOutgoingContext(ctx, "x-gateway-id", *gatewayID)
+	ctx = metadata.AppendToOutgoingContext(ctx, gatewaygrpc.GatewayIDKey, *gatewayID)
 
 	fleet := make([]*simulator.Robot, *robots)
 	for i := range fleet {
-		fleet[i] = simulator.NewRobot(fmt.Sprintf("SIM-%03d", i+1), rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
+		fleet[i] = simulator.NewRobot(robotSerial(*gatewayID, i+1), rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
 	}
 	if err := scan(ctx, gateways, fleet, log); err != nil {
 		return err
