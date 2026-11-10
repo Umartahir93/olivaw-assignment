@@ -323,14 +323,14 @@ func (s *Fault) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *FaultPage) Encode(e *jx.Encoder) {
+func (s *FaultList) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *FaultPage) encodeFields(e *jx.Encoder) {
+func (s *FaultList) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("items")
 		e.ArrStart()
@@ -339,21 +339,16 @@ func (s *FaultPage) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
-	{
-		e.FieldStart("hasMore")
-		e.Bool(s.HasMore)
-	}
 }
 
-var jsonFieldsNameOfFaultPage = [2]string{
+var jsonFieldsNameOfFaultList = [1]string{
 	0: "items",
-	1: "hasMore",
 }
 
-// Decode decodes FaultPage from json.
-func (s *FaultPage) Decode(d *jx.Decoder) error {
+// Decode decodes FaultList from json.
+func (s *FaultList) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode FaultPage to nil")
+		return errors.New("invalid: unable to decode FaultList to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -377,29 +372,17 @@ func (s *FaultPage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"items\"")
 			}
-		case "hasMore":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Bool()
-				s.HasMore = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"hasMore\"")
-			}
 		default:
 			return d.Skip()
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode FaultPage")
+		return errors.Wrap(err, "decode FaultList")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -411,8 +394,8 @@ func (s *FaultPage) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfFaultPage) {
-					name = jsonFieldsNameOfFaultPage[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfFaultList) {
+					name = jsonFieldsNameOfFaultList[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -433,14 +416,14 @@ func (s *FaultPage) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *FaultPage) MarshalJSON() ([]byte, error) {
+func (s *FaultList) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *FaultPage) UnmarshalJSON(data []byte) error {
+func (s *FaultList) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -814,14 +797,14 @@ func (s *GatewayCreate) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *GatewayPage) Encode(e *jx.Encoder) {
+func (s *GatewayList) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *GatewayPage) encodeFields(e *jx.Encoder) {
+func (s *GatewayList) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("items")
 		e.ArrStart()
@@ -830,21 +813,16 @@ func (s *GatewayPage) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
-	{
-		e.FieldStart("hasMore")
-		e.Bool(s.HasMore)
-	}
 }
 
-var jsonFieldsNameOfGatewayPage = [2]string{
+var jsonFieldsNameOfGatewayList = [1]string{
 	0: "items",
-	1: "hasMore",
 }
 
-// Decode decodes GatewayPage from json.
-func (s *GatewayPage) Decode(d *jx.Decoder) error {
+// Decode decodes GatewayList from json.
+func (s *GatewayList) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode GatewayPage to nil")
+		return errors.New("invalid: unable to decode GatewayList to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -868,29 +846,17 @@ func (s *GatewayPage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"items\"")
 			}
-		case "hasMore":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Bool()
-				s.HasMore = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"hasMore\"")
-			}
 		default:
 			return d.Skip()
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode GatewayPage")
+		return errors.Wrap(err, "decode GatewayList")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -902,8 +868,8 @@ func (s *GatewayPage) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfGatewayPage) {
-					name = jsonFieldsNameOfGatewayPage[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfGatewayList) {
+					name = jsonFieldsNameOfGatewayList[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -924,14 +890,14 @@ func (s *GatewayPage) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *GatewayPage) MarshalJSON() ([]byte, error) {
+func (s *GatewayList) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *GatewayPage) UnmarshalJSON(data []byte) error {
+func (s *GatewayList) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -1491,14 +1457,14 @@ func (s *Measurement) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *MeasurementPage) Encode(e *jx.Encoder) {
+func (s *MeasurementList) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *MeasurementPage) encodeFields(e *jx.Encoder) {
+func (s *MeasurementList) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("items")
 		e.ArrStart()
@@ -1507,21 +1473,16 @@ func (s *MeasurementPage) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
-	{
-		e.FieldStart("hasMore")
-		e.Bool(s.HasMore)
-	}
 }
 
-var jsonFieldsNameOfMeasurementPage = [2]string{
+var jsonFieldsNameOfMeasurementList = [1]string{
 	0: "items",
-	1: "hasMore",
 }
 
-// Decode decodes MeasurementPage from json.
-func (s *MeasurementPage) Decode(d *jx.Decoder) error {
+// Decode decodes MeasurementList from json.
+func (s *MeasurementList) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode MeasurementPage to nil")
+		return errors.New("invalid: unable to decode MeasurementList to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -1545,29 +1506,17 @@ func (s *MeasurementPage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"items\"")
 			}
-		case "hasMore":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Bool()
-				s.HasMore = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"hasMore\"")
-			}
 		default:
 			return d.Skip()
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode MeasurementPage")
+		return errors.Wrap(err, "decode MeasurementList")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1579,8 +1528,8 @@ func (s *MeasurementPage) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfMeasurementPage) {
-					name = jsonFieldsNameOfMeasurementPage[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfMeasurementList) {
+					name = jsonFieldsNameOfMeasurementList[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -1601,14 +1550,14 @@ func (s *MeasurementPage) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *MeasurementPage) MarshalJSON() ([]byte, error) {
+func (s *MeasurementList) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *MeasurementPage) UnmarshalJSON(data []byte) error {
+func (s *MeasurementList) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -2357,14 +2306,14 @@ func (s *Robot) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *RobotPage) Encode(e *jx.Encoder) {
+func (s *RobotList) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *RobotPage) encodeFields(e *jx.Encoder) {
+func (s *RobotList) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("items")
 		e.ArrStart()
@@ -2373,21 +2322,16 @@ func (s *RobotPage) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
-	{
-		e.FieldStart("hasMore")
-		e.Bool(s.HasMore)
-	}
 }
 
-var jsonFieldsNameOfRobotPage = [2]string{
+var jsonFieldsNameOfRobotList = [1]string{
 	0: "items",
-	1: "hasMore",
 }
 
-// Decode decodes RobotPage from json.
-func (s *RobotPage) Decode(d *jx.Decoder) error {
+// Decode decodes RobotList from json.
+func (s *RobotList) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode RobotPage to nil")
+		return errors.New("invalid: unable to decode RobotList to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -2411,29 +2355,17 @@ func (s *RobotPage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"items\"")
 			}
-		case "hasMore":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Bool()
-				s.HasMore = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"hasMore\"")
-			}
 		default:
 			return d.Skip()
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode RobotPage")
+		return errors.Wrap(err, "decode RobotList")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2445,8 +2377,8 @@ func (s *RobotPage) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfRobotPage) {
-					name = jsonFieldsNameOfRobotPage[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfRobotList) {
+					name = jsonFieldsNameOfRobotList[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -2467,14 +2399,14 @@ func (s *RobotPage) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *RobotPage) MarshalJSON() ([]byte, error) {
+func (s *RobotList) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RobotPage) UnmarshalJSON(data []byte) error {
+func (s *RobotList) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
