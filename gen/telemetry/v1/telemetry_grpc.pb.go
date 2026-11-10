@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: olivaw/fleet/v1/telemetry.proto
+// source: telemetry/v1/telemetry.proto
 
-package fleetv1
+package telemetryv1
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TelemetryService_ReportTelemetry_FullMethodName = "/olivaw.fleet.v1.TelemetryService/ReportTelemetry"
-	TelemetryService_ReportFault_FullMethodName     = "/olivaw.fleet.v1.TelemetryService/ReportFault"
+	TelemetryService_ReportTelemetry_FullMethodName = "/telemetry.v1.TelemetryService/ReportTelemetry"
+	TelemetryService_ReportFault_FullMethodName     = "/telemetry.v1.TelemetryService/ReportFault"
 )
 
 // TelemetryServiceClient is the client API for TelemetryService service.
@@ -222,7 +222,7 @@ func _TelemetryService_ReportFault_Handler(srv interface{}, ctx context.Context,
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TelemetryService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "olivaw.fleet.v1.TelemetryService",
+	ServiceName: "telemetry.v1.TelemetryService",
 	HandlerType: (*TelemetryServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -235,5 +235,5 @@ var TelemetryService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "olivaw/fleet/v1/telemetry.proto",
+	Metadata: "telemetry/v1/telemetry.proto",
 }

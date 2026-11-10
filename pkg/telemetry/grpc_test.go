@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	fleetv1 "github.com/umartahir93/olivaw-assignment/gen/olivaw/fleet/v1"
+	telemetryv1 "github.com/umartahir93/olivaw-assignment/gen/telemetry/v1"
 )
 
 func TestReportTelemetryReturnsResponse(t *testing.T) {
-	resp, err := (&Server{}).ReportTelemetry(context.Background(), &fleetv1.ReportTelemetryRequest{})
+	resp, err := (&Server{}).ReportTelemetry(context.Background(), &telemetryv1.ReportTelemetryRequest{})
 	if err != nil {
 		t.Fatalf("ReportTelemetry: %v", err)
 	}
@@ -18,7 +18,7 @@ func TestReportTelemetryReturnsResponse(t *testing.T) {
 }
 
 func TestReportFaultReturnsResponse(t *testing.T) {
-	resp, err := (&Server{}).ReportFault(context.Background(), &fleetv1.ReportFaultRequest{})
+	resp, err := (&Server{}).ReportFault(context.Background(), &telemetryv1.ReportFaultRequest{})
 	if err != nil {
 		t.Fatalf("ReportFault: %v", err)
 	}

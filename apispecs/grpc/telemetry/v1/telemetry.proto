@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package olivaw.fleet.v1;
+package telemetry.v1;
 
 import "google/protobuf/timestamp.proto";
 
