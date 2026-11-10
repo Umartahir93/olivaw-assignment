@@ -1,0 +1,66 @@
+services:
+  db:
+    # PostgreSQL with the TimescaleDB extension, for measurements later on.
+    image: timescale/timescaledb:latest-pg17
+    environment:
+      POSTGRES_USER: fleet
+      POSTGRES_PASSWORD: fleet
+      POSTGRES_DB: fleet
+    ports:
+      - "5432:5432"
+    volumes:
+      # Creates the fleet_test database that integration tests use, so they
+      # never touch development data.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleet -d fleet"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  # The server: applies the migrations, then serves REST and gRPC.
+  fleet:
+    build:
+      context: .
+      target: fleet
+    environment:
+      DATABASE_URL: postgres://fleet:fleet@db:5432/fleet?sslmode=disable
+    ports:
+      - "8080:8080" # REST
+      - "9090:9090" # gRPC
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # The gateway simulator, sending its robots' measurements to the server.
+  simulator:
+    build:
+      context: .
+      target: simulator
+    command: ["-server", "fleet:9090", "-rest", "http://fleet:8080", "-robots", "5"]
+    depends_on:
+      - fleet
+    # The server may still be migrating when the simulator first calls it.
+    restart: on-failure
+
+  # Integration tests in a Go container next to the database. Only started on
+  # demand (`make docker-test-integration`), never by `make up`.
+  integration-tests:
+    profiles: [test]
+    image: golang:1.26
+    working_dir: /src
+    volumes:
+      - .:/src
+      - go-mod:/go/pkg/mod
+      - go-build:/root/.cache/go-build
+    environment:
+      TEST_DATABASE_URL: postgres://fleet:fleet@db:5432/fleet_test?sslmode=disable
+    command: ["go", "test", "-tags", "integration", "-race", "-count=1", "-p", "1", "./..."]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  # Go module and build caches, kept between test runs.
+  go-mod:
+  go-build:
