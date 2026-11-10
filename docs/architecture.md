@@ -223,20 +223,26 @@ apispecs/                 API contracts, the source of truth
   grpc/                   proto + buf config (lint, breaking, generate)
   rest/                   openapi.yaml + ogen config
 gen/                      generated code, never edited by hand
-api/                      REST handlers (implement the generated fleetv1.Handler)
-pkg/telemetry/            gateway-facing logic
+pkg/gateway/, pkg/robot/  one package per entity, same layout:
   domain/                 entities and their rules
   service.go              service layer: rules, uses a repository
-  adapter/                gRPC handlers in, storage out
+  repo_fake.go            in-memory repository for service tests
+  repository/             PostgreSQL storage (sqlx)
+  grpc/                   gRPC handlers for gateways
+  handler/                REST handlers
+middleware/               logging and panic recovery for gRPC and REST
+utils/                    small shared helpers (database error checks)
+migrations/               database connection and pool, SQL migrations (goose) embedded in the binary
 pkg/simulator/            robot model used by the gateway simulator
 cmd/fleet/                the server binary: wires handlers into gRPC and HTTP servers
 cmd/simulator/            the gateway simulator
+test/postgres/            test database setup: SQL for the container, Go helper for tests
 ```
 
 The rule: contracts in `apispecs/`, generated code in `gen/`, handwritten
-logic in `api/` and `pkg/`, wiring (servers, routing, error format) in
-`cmd/`. Within `pkg/telemetry`, the domain and the service know nothing
-about gRPC or storage; adapters translate.
+logic in `pkg/`, wiring (servers, routing, error format) in `cmd/`. Within
+an entity package, the domain and the service know nothing about gRPC,
+HTTP or storage; handlers and repositories translate.
 
 ## Gateway simulator
 

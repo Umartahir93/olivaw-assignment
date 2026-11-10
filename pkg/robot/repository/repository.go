@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/umartahir93/olivaw-assignment/utils"
 
-	"github.com/umartahir93/olivaw-assignment/pkg/postgres"
 	robotservice "github.com/umartahir93/olivaw-assignment/pkg/robot"
 	"github.com/umartahir93/olivaw-assignment/pkg/robot/domain"
 )
@@ -143,7 +143,7 @@ func (r *Repository) GetRobot(ctx context.Context, id uuid.UUID) (domain.Robot, 
 	var robotDB robot
 	err := r.selectRobotByID.GetContext(ctx, &robotDB, id)
 	switch {
-	case postgres.IsNoRows(err):
+	case utils.IsNoRows(err):
 		return domain.Robot{}, domain.ErrNotFound
 	case err != nil:
 		return domain.Robot{}, err

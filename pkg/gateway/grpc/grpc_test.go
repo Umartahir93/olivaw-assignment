@@ -95,7 +95,8 @@ func TestCallingGateway(t *testing.T) {
 			gateways: &gatewaygrpc.FakeGatewayService{
 				Err: errDatabase,
 			},
-			wantCode: codes.Internal,
+			// Returned as it is; the middleware logs it and answers INTERNAL.
+			wantCode: codes.Unknown,
 		},
 	}
 	for _, tt := range tests {
@@ -153,7 +154,8 @@ func TestListRobots(t *testing.T) {
 			robots: &gatewaygrpc.FakeRobotService{
 				Err: errDatabase,
 			},
-			wantCode: codes.Internal,
+			// Returned as it is; the middleware logs it and answers INTERNAL.
+			wantCode: codes.Unknown,
 		},
 	}
 	for _, tt := range tests {
@@ -262,7 +264,8 @@ func TestReportScan(t *testing.T) {
 			robots: &gatewaygrpc.FakeRobotService{
 				Err: errDatabase,
 			},
-			wantCode: codes.Internal,
+			// Returned as it is; the middleware logs it and answers INTERNAL.
+			wantCode: codes.Unknown,
 			wantScanned: []robotdomain.Robot{
 				{SerialNumber: "SN-1", GatewayID: registered.ID},
 			},

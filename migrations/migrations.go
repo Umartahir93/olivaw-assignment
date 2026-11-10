@@ -1,5 +1,6 @@
-// Package migrations holds the SQL migrations of the database, embedded in
-// the binary so they run wherever the binary runs.
+// Package migrations connects to the database and brings its schema up to
+// date. The SQL migrations are embedded in the binary, so they run wherever
+// the binary runs.
 package migrations
 
 import "embed"

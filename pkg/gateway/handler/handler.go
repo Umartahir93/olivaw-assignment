@@ -1,10 +1,8 @@
-// Package api implements the fleet REST API (apispecs/rest/openapi.yaml). The
-// generated server in gen/fleet/v1 routes requests and validates parameters
-// and bodies before calling these handlers.
-//
-// Measurements and faults are not stored yet, so their lists are always
-// empty.
-package api
+// Package handler implements the gateway operations of the REST API
+// (apispecs/rest/openapi.yaml): registering and reading gateways and
+// listing a gateway's robots. The generated server in gen/fleet/v1 routes
+// requests and validates them before calling these handlers.
+package handler
 
 import (
 	"context"
@@ -30,16 +28,13 @@ type GatewayService interface {
 // RobotService is what the handlers need from the robot service.
 type RobotService interface {
 	GatewayRobots(ctx context.Context, gatewayID uuid.UUID) ([]robotdomain.Robot, error)
-	GetRobot(ctx context.Context, id uuid.UUID) (robotdomain.Robot, error)
 }
 
-// Handler implements fleetv1.Handler.
+// Handler handles the gateway operations of the REST API.
 type Handler struct {
 	gateways GatewayService
 	robots   RobotService
 }
-
-var _ fleetv1.Handler = (*Handler)(nil)
 
 // NewHandler returns a Handler backed by the gateway and robot services.
 func NewHandler(gateways GatewayService, robots RobotService) *Handler {
@@ -58,7 +53,7 @@ func (h *Handler) CreateGateway(ctx context.Context, req *fleetv1.GatewayCreate)
 	}
 	created, err := h.gateways.RegisterGateway(ctx, g)
 	if errors.Is(err, gatewaydomain.ErrAlreadyExists) {
-		res := fleetv1.CreateGatewayConflict(problem(http.StatusConflict, "a gateway with this serial number is already registered"))
+		res := fleetv1.CreateGatewayConflict(Problem(http.StatusConflict, "a gateway with this serial number is already registered"))
 		return &res, nil
 	}
 	if err != nil {
@@ -88,7 +83,7 @@ func (h *Handler) ListGateways(ctx context.Context) (*fleetv1.GatewayList, error
 func (h *Handler) GetGateway(ctx context.Context, params fleetv1.GetGatewayParams) (fleetv1.GetGatewayRes, error) {
 	g, err := h.gateways.GetGateway(ctx, params.GatewayId)
 	if errors.Is(err, gatewaydomain.ErrNotFound) {
-		res := fleetv1.GetGatewayNotFound(problem(http.StatusNotFound, "gateway not found"))
+		res := fleetv1.GetGatewayNotFound(Problem(http.StatusNotFound, "gateway not found"))
 		return &res, nil
 	}
 	if err != nil {
@@ -102,7 +97,7 @@ func (h *Handler) GetGateway(ctx context.Context, params fleetv1.GetGatewayParam
 func (h *Handler) ListGatewayRobots(ctx context.Context, params fleetv1.ListGatewayRobotsParams) (fleetv1.ListGatewayRobotsRes, error) {
 	_, err := h.gateways.GetGateway(ctx, params.GatewayId)
 	if errors.Is(err, gatewaydomain.ErrNotFound) {
-		res := fleetv1.ListGatewayRobotsNotFound(problem(http.StatusNotFound, "gateway not found"))
+		res := fleetv1.ListGatewayRobotsNotFound(Problem(http.StatusNotFound, "gateway not found"))
 		return &res, nil
 	}
 	if err != nil {
@@ -115,60 +110,14 @@ func (h *Handler) ListGatewayRobots(ctx context.Context, params fleetv1.ListGate
 	now := time.Now()
 	items := make([]fleetv1.Robot, len(robots))
 	for i, r := range robots {
-		items[i] = robotToREST(r, now)
+		items[i] = RobotToREST(r, now)
 	}
 	return &fleetv1.RobotList{Items: items}, nil
 }
 
-// GetRobot handles GET /v1/robots/{robotId}.
-func (h *Handler) GetRobot(ctx context.Context, params fleetv1.GetRobotParams) (fleetv1.GetRobotRes, error) {
-	r, err := h.robots.GetRobot(ctx, params.RobotId)
-	if errors.Is(err, robotdomain.ErrNotFound) {
-		res := fleetv1.GetRobotNotFound(problem(http.StatusNotFound, "robot not found"))
-		return &res, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	res := robotToREST(r, time.Now())
-	return &res, nil
-}
-
-// ListRobotMeasurements handles GET /v1/robots/{robotId}/measurements.
-func (h *Handler) ListRobotMeasurements(ctx context.Context, params fleetv1.ListRobotMeasurementsParams) (fleetv1.ListRobotMeasurementsRes, error) {
-	_, err := h.robots.GetRobot(ctx, params.RobotId)
-	if errors.Is(err, robotdomain.ErrNotFound) {
-		res := fleetv1.ListRobotMeasurementsNotFound(problem(http.StatusNotFound, "robot not found"))
-		return &res, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &fleetv1.MeasurementList{Items: []fleetv1.Measurement{}}, nil
-}
-
-// ListRobotFaults handles GET /v1/robots/{robotId}/faults.
-func (h *Handler) ListRobotFaults(ctx context.Context, params fleetv1.ListRobotFaultsParams) (fleetv1.ListRobotFaultsRes, error) {
-	_, err := h.robots.GetRobot(ctx, params.RobotId)
-	if errors.Is(err, robotdomain.ErrNotFound) {
-		res := fleetv1.ListRobotFaultsNotFound(problem(http.StatusNotFound, "robot not found"))
-		return &res, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &fleetv1.FaultList{Items: []fleetv1.Fault{}}, nil
-}
-
-// NewError turns an error returned by a handler into a 500 problem.
-func (h *Handler) NewError(_ context.Context, _ error) *fleetv1.ErrorStatusCode {
-	return &fleetv1.ErrorStatusCode{
-		StatusCode: http.StatusInternalServerError,
-		Response:   problem(http.StatusInternalServerError, ""),
-	}
-}
-
-func problem(code int, detail string) fleetv1.Problem {
+// Problem returns a problem details body (RFC 9457) for the status code;
+// an empty detail is left out.
+func Problem(code int, detail string) fleetv1.Problem {
 	p := fleetv1.Problem{
 		Title:  http.StatusText(code),
 		Status: code,
@@ -177,6 +126,21 @@ func problem(code int, detail string) fleetv1.Problem {
 		p.Detail = fleetv1.NewOptString(detail)
 	}
 	return p
+}
+
+// RobotToREST maps a robot to its REST representation at now. No
+// measurements are stored yet, so latest is always null.
+func RobotToREST(r robotdomain.Robot, now time.Time) fleetv1.Robot {
+	out := fleetv1.Robot{
+		RobotId:      r.ID,
+		SerialNumber: r.SerialNumber,
+		GatewayId:    r.GatewayID,
+		FirstSeenAt:  r.FirstSeenAt,
+		Connectivity: fleetv1.Connectivity(gatewaydomain.ConnectivityAt(r.LastSeenAt, now)),
+		LastSeenAt:   optTime(r.LastSeenAt),
+	}
+	out.Latest.SetToNull()
+	return out
 }
 
 func gatewayToREST(g gatewaydomain.Gateway, now time.Time) fleetv1.Gateway {
@@ -191,20 +155,6 @@ func gatewayToREST(g gatewaydomain.Gateway, now time.Time) fleetv1.Gateway {
 	if g.Name != nil {
 		out.Name = fleetv1.NewOptString(*g.Name)
 	}
-	return out
-}
-
-func robotToREST(r robotdomain.Robot, now time.Time) fleetv1.Robot {
-	out := fleetv1.Robot{
-		RobotId:      r.ID,
-		SerialNumber: r.SerialNumber,
-		GatewayId:    r.GatewayID,
-		FirstSeenAt:  r.FirstSeenAt,
-		Connectivity: fleetv1.Connectivity(gatewaydomain.ConnectivityAt(r.LastSeenAt, now)),
-		LastSeenAt:   optTime(r.LastSeenAt),
-	}
-	// No measurements are stored yet.
-	out.Latest.SetToNull()
 	return out
 }
 

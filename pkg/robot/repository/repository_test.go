@@ -14,9 +14,9 @@ import (
 
 	gatewaydomain "github.com/umartahir93/olivaw-assignment/pkg/gateway/domain"
 	gatewayrepository "github.com/umartahir93/olivaw-assignment/pkg/gateway/repository"
-	"github.com/umartahir93/olivaw-assignment/pkg/postgres/postgrestest"
 	"github.com/umartahir93/olivaw-assignment/pkg/robot/domain"
 	"github.com/umartahir93/olivaw-assignment/pkg/robot/repository"
+	postgrestest "github.com/umartahir93/olivaw-assignment/test/postgres"
 )
 
 var (

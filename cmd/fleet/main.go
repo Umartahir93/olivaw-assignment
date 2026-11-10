@@ -15,19 +15,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/umartahir93/olivaw-assignment/migrations"
 	"github.com/umartahir93/olivaw-assignment/pkg/gateway"
 	gatewayrepository "github.com/umartahir93/olivaw-assignment/pkg/gateway/repository"
-	"github.com/umartahir93/olivaw-assignment/pkg/postgres"
 	"github.com/umartahir93/olivaw-assignment/pkg/robot"
 	robotrepository "github.com/umartahir93/olivaw-assignment/pkg/robot/repository"
 )
 
 var (
-	host     = flag.String("host", "0.0.0.0", "hostname both servers listen on")
-	port     = flag.Int("port", 9090, "gRPC server port")
-	restPort = flag.Int("rest-port", 8080, "REST server port")
-	dbURL    = flag.String("database-url", envOr("DATABASE_URL", "postgres://fleet:fleet@localhost:5432/fleet?sslmode=disable"), "PostgreSQL connection URL (env DATABASE_URL)")
-	logLevel slog.Level
+	host        = flag.String("host", "0.0.0.0", "hostname both servers listen on")
+	port        = flag.Int("port", 9090, "gRPC server port")
+	restPort    = flag.Int("rest-port", 8080, "REST server port")
+	dbURL       = flag.String("database-url", envOr("DATABASE_URL", "postgres://fleet:fleet@localhost:5432/fleet?sslmode=disable"), "PostgreSQL connection URL (env DATABASE_URL)")
+	healthCheck = flag.Bool("health-check", false, "check that a running server on -rest-port is healthy, then exit (for container health checks)")
+	logLevel    slog.Level
 )
 
 func init() {
@@ -48,11 +49,15 @@ func main() {
 func run() error {
 	flag.Parse()
 
+	if *healthCheck {
+		return checkHealth()
+	}
+
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
 	// The database must be reachable and its schema up to date before any
 	// server accepts requests.
-	db, err := postgres.Open(context.Background(), *dbURL)
+	db, err := migrations.Open(context.Background(), *dbURL)
 	if err != nil {
 		return err
 	}
@@ -61,7 +66,7 @@ func run() error {
 			log.Error("close database", "error", closeErr)
 		}
 	}()
-	if err = postgres.Migrate(context.Background(), db); err != nil {
+	if err = migrations.Migrate(context.Background(), db); err != nil {
 		return err
 	}
 	log.Info("database migrated")
@@ -84,14 +89,14 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", grpcAddr, err)
 	}
-	grpcSrv := newGRPCServer(gateways, robots)
+	grpcSrv, healthSrv := newGRPCServer(log, gateways, robots)
 
 	restAddr := net.JoinHostPort(*host, strconv.Itoa(*restPort))
 	restLis, err := net.Listen("tcp", restAddr)
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", restAddr, err)
 	}
-	restSrv, err := newRESTServer(restAddr, gateways, robots)
+	restSrv, err := newRESTServer(restAddr, log, db, gateways, robots)
 	if err != nil {
 		return err
 	}
@@ -118,16 +123,52 @@ func run() error {
 	case <-ctx.Done():
 	}
 
-	// Graceful shutdown: stop accepting new requests and let running ones
-	// finish.
+	// Graceful shutdown: report NOT_SERVING, stop accepting new requests and
+	// let running ones finish within shutdownTimeout.
 	log.Info("shutting down")
+	healthSrv.Shutdown()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
-	grpcSrv.GracefulStop()
+
+	grpcStopped := make(chan struct{})
+	go func() {
+		grpcSrv.GracefulStop()
+		close(grpcStopped)
+	}()
 	if shutdownErr := restSrv.Shutdown(shutdownCtx); shutdownErr != nil {
 		err = errors.Join(err, fmt.Errorf("rest shutdown: %w", shutdownErr))
 	}
+	select {
+	case <-grpcStopped:
+	case <-shutdownCtx.Done():
+		// Calls still running after the timeout are cancelled.
+		grpcSrv.Stop()
+		<-grpcStopped
+		err = errors.Join(err, errors.New("grpc shutdown: timed out, remaining calls cancelled"))
+	}
 	return err
+}
+
+// checkHealth asks the running server's health endpoint whether it is
+// healthy. The server image has no shell or curl, so the container health
+// check runs the server binary itself.
+func checkHealth() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	url := "http://" + net.JoinHostPort("localhost", strconv.Itoa(*restPort)) + healthPath
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("health check: %w", err)
+	}
+	defer func() { _ = res.Body.Close() }() // nothing to do if closing a read body fails
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("health check: %s", res.Status)
+	}
+	return nil
 }
 
 // envOr returns the environment variable key, or fallback if it is unset.

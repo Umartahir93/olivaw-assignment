@@ -7,8 +7,7 @@ import (
 	"testing"
 
 	"github.com/jmoiron/sqlx"
-
-	"github.com/umartahir93/olivaw-assignment/pkg/postgres"
+	"github.com/umartahir93/olivaw-assignment/migrations"
 )
 
 // defaultURL is the test database from docker-compose.yml.
@@ -23,7 +22,7 @@ func Open(t *testing.T) *sqlx.DB {
 	if v, ok := os.LookupEnv("TEST_DATABASE_URL"); ok {
 		url = v
 	}
-	db, err := postgres.Open(context.Background(), url)
+	db, err := migrations.Open(context.Background(), url)
 	if err != nil {
 		t.Fatalf("open test database (start it with `make db-up`): %v", err)
 	}
@@ -32,7 +31,7 @@ func Open(t *testing.T) *sqlx.DB {
 			t.Errorf("close test database: %v", err)
 		}
 	})
-	if err := postgres.Migrate(context.Background(), db); err != nil {
+	if err := migrations.Migrate(context.Background(), db); err != nil {
 		t.Fatalf("migrate test database: %v", err)
 	}
 	return db

@@ -32,8 +32,9 @@ silences all its robots.
 `gen/`; handlers are written by hand.
 
 - gRPC: buf lints, checks formatting and fails on breaking changes.
-- REST: ogen generates models, validation, routing and the server; `api/`
-  implements `fleetv1.Handler`.
+- REST: ogen generates models, validation, routing and the server; the
+  handlers in `pkg/gateway/handler` and `pkg/robot/handler` together
+  implement `fleetv1.Handler`.
 
 **Why.**
 - The contract is the source of truth. A new endpoint breaks the build

@@ -174,7 +174,8 @@ func TestReportMeasurement(t *testing.T) {
 			robots: &robotgrpc.FakeRobotService{
 				Err: errDatabase,
 			},
-			wantCode: codes.Internal,
+			// Returned as it is; the middleware logs it and answers INTERNAL.
+			wantCode: codes.Unknown,
 		},
 	}
 	for _, tt := range tests {

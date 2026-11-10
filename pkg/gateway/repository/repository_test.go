@@ -14,7 +14,7 @@ import (
 
 	"github.com/umartahir93/olivaw-assignment/pkg/gateway/domain"
 	"github.com/umartahir93/olivaw-assignment/pkg/gateway/repository"
-	"github.com/umartahir93/olivaw-assignment/pkg/postgres/postgrestest"
+	postgrestest "github.com/umartahir93/olivaw-assignment/test/postgres"
 )
 
 var (
