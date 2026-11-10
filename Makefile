@@ -5,7 +5,7 @@ export PATH := $(BIN):$(PATH)
 
 .PHONY: help
 help: ## Show this help.
-	@awk 'BEGIN {FS = ":.*## "} /^##@/ {printf "\n%s\n", substr($$0, 5)} /^[a-z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*## "} /^##@/ {printf "\n%s\n", substr($$0, 5)} /^[a-z0-9_-]+:.*## / {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 .PHONY: generate
 generate: grpc-generate rest-generate ## Generate Go code from both API contracts into ./gen.
@@ -55,9 +55,11 @@ clean-tools: ## Remove the tools installed in ./bin.
 test_unit: ## Run the unit tests (files tagged //go:build unit).
 	go test -tags unit -race ./...
 
+# Integration tests share one test database and empty its tables before
+# every case, so packages run one after another (-p 1).
 .PHONY: test_integration
-test_integration: ## Run the integration tests (files tagged //go:build integration).
-	go test -tags integration -race -count=1 ./...
+integration_test: db-up ## Run the integration tests against the test database (files tagged //go:build integration).
+	go test -tags integration -race -count=1 -p 1 ./...
 
 .PHONY: test_e2e
 test_e2e: ## Run the end-to-end tests (files tagged //go:build e2e).
@@ -66,6 +68,46 @@ test_e2e: ## Run the end-to-end tests (files tagged //go:build e2e).
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT) ## Lint the Go code with golangci-lint.
 	$(GOLANGCI_LINT) run --build-tags unit,integration,e2e ./...
+
+##@ Docker
+
+# Compose is a docker plugin on some machines and a standalone binary on others.
+COMPOSE  := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo docker-compose)
+GO_IMAGE := golang:1.26
+
+# Run Go tools in containers with the source mounted, sharing caches between runs.
+DOCKER_GO := docker run --rm -v $(CURDIR):/src -w /src -v olivaw-assignment_go-mod:/go/pkg/mod -v olivaw-assignment_go-build:/root/.cache/go-build
+
+.PHONY: up
+up: ## Build and start everything in Docker: database, server (REST :8080, gRPC :9090) and simulator.
+	$(COMPOSE) up -d --build
+
+.PHONY: down
+down: ## Stop everything started with up or db-up.
+	$(COMPOSE) down
+
+.PHONY: logs
+logs: ## Follow the logs of the server and the simulator.
+	$(COMPOSE) logs -f fleet simulator
+
+.PHONY: db-up
+db-up: ## Start only the database (fleet and fleet_test) and wait until it is ready.
+	$(COMPOSE) up -d --wait db
+
+.PHONY: test_unit_docker
+test_unit_docker: ## Run the unit tests in a Go container.
+	$(DOCKER_GO) $(GO_IMAGE) go test -tags unit -race ./...
+
+.PHONY: test_integration_docker
+test_integration_docker: ## Run the integration tests in a Go container next to the database.
+	$(COMPOSE) --profile test run --rm integration-tests
+
+.PHONY: docker_test
+docker_test: test_integration_docker test_unit_docker ## Run unit and integration tests in Docker.
+
+.PHONY: docker_lint
+docker_lint: ## Lint the Go code in a golangci-lint container.
+	$(DOCKER_GO) golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --build-tags unit,integration,e2e ./...
 
 ##@ Simulator
 

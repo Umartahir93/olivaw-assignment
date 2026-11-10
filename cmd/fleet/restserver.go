@@ -7,13 +7,15 @@ import (
 
 	"github.com/umartahir93/olivaw-assignment/api"
 	fleetv1 "github.com/umartahir93/olivaw-assignment/gen/fleet/v1"
+	"github.com/umartahir93/olivaw-assignment/pkg/gateway"
+	"github.com/umartahir93/olivaw-assignment/pkg/robot"
 )
 
 // newRESTServer returns an HTTP server for the fleet REST API on addr. The
 // generated server routes requests and validates them against
 // apispecs/rest/openapi.yaml before calling the handlers in api.
-func newRESTServer(addr string) (*http.Server, error) {
-	handler, err := fleetv1.NewServer(api.NewHandler(), fleetv1.WithErrorHandler(problemErrorHandler))
+func newRESTServer(addr string, gateways *gateway.Service, robots *robot.Service) (*http.Server, error) {
+	handler, err := fleetv1.NewServer(api.NewHandler(gateways, robots), fleetv1.WithErrorHandler(problemErrorHandler))
 	if err != nil {
 		return nil, fmt.Errorf("rest server: %w", err)
 	}

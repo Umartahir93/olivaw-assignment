@@ -1,6 +1,6 @@
 //go:build unit
 
-package robot
+package robot_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 
+	"github.com/umartahir93/olivaw-assignment/pkg/robot"
 	"github.com/umartahir93/olivaw-assignment/pkg/robot/domain"
 )
 
@@ -50,7 +51,7 @@ func stored(id uuid.UUID, serial string, gatewayID uuid.UUID) domain.Robot {
 }
 
 // scan reports robots and fails the test on error.
-func scan(t *testing.T, s *Service, robots ...domain.Robot) {
+func scan(t *testing.T, s *robot.Service, robots ...domain.Robot) {
 	t.Helper()
 	if _, err := s.ReportScan(context.Background(), robots); err != nil {
 		t.Fatalf("scan: %v", err)
@@ -166,8 +167,8 @@ func TestReportScan(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &FakeRepository{}
-			s := NewService(repo)
+			repo := &robot.FakeRepository{}
+			s := robot.NewService(repo)
 			scan(t, s, tt.earlier...)
 			repo.Err = tt.repoErr
 
@@ -208,7 +209,7 @@ func TestGatewayRobots(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewService(&FakeRepository{})
+			s := robot.NewService(&robot.FakeRepository{})
 			scan(t, s,
 				scanned(robot1ID, "SN-1", gateway1ID),
 				scanned(robot2ID, "SN-2", gateway1ID),
@@ -247,7 +248,7 @@ func TestGetRobot(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewService(&FakeRepository{})
+			s := robot.NewService(&robot.FakeRepository{})
 			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
 
 			got, err := s.GetRobot(context.Background(), tt.id)
@@ -298,8 +299,8 @@ func TestMarkSeen(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &FakeRepository{}
-			s := NewService(repo)
+			repo := &robot.FakeRepository{}
+			s := robot.NewService(repo)
 			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
 
 			got, err := s.MarkSeen(context.Background(), tt.gateway, tt.robot)

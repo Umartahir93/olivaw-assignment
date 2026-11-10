@@ -1,10 +1,12 @@
 //go:build unit
 
-package domain
+package domain_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/umartahir93/olivaw-assignment/pkg/gateway/domain"
 )
 
 func TestConnectivityAt(t *testing.T) {
@@ -12,40 +14,40 @@ func TestConnectivityAt(t *testing.T) {
 	tests := []struct {
 		name     string
 		lastSeen *time.Time
-		want     Connectivity
+		want     domain.Connectivity
 	}{
 		{
 			name:     "never seen",
 			lastSeen: nil,
-			want:     ConnectivityUnknown,
+			want:     domain.ConnectivityUnknown,
 		},
 		{
 			name:     "just now",
 			lastSeen: ptr(now),
-			want:     ConnectivityOnline,
+			want:     domain.ConnectivityOnline,
 		},
 		{
 			name:     "exactly 5 minutes ago",
-			lastSeen: ptr(now.Add(-OfflineAfter)),
-			want:     ConnectivityOnline,
+			lastSeen: ptr(now.Add(-domain.OfflineAfter)),
+			want:     domain.ConnectivityOnline,
 		},
 		{
 			name:     "just over 5 minutes ago",
-			lastSeen: ptr(now.Add(-OfflineAfter - time.Second)),
-			want:     ConnectivityOffline,
+			lastSeen: ptr(now.Add(-domain.OfflineAfter - time.Second)),
+			want:     domain.ConnectivityOffline,
 		},
 		{
 			name:     "an hour ago",
 			lastSeen: ptr(now.Add(-time.Hour)),
-			want:     ConnectivityOffline,
+			want:     domain.ConnectivityOffline,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ConnectivityAt(tt.lastSeen, now); got != tt.want {
+			if got := domain.ConnectivityAt(tt.lastSeen, now); got != tt.want {
 				t.Errorf("ConnectivityAt = %v, want %v", got, tt.want)
 			}
-			if got := (Gateway{LastSeenAt: tt.lastSeen}).Connectivity(now); got != tt.want {
+			if got := (domain.Gateway{LastSeenAt: tt.lastSeen}).Connectivity(now); got != tt.want {
 				t.Errorf("Gateway.Connectivity = %v, want %v", got, tt.want)
 			}
 		})

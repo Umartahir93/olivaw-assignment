@@ -1,6 +1,6 @@
 //go:build unit
 
-package gateway
+package gateway_test
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 
+	"github.com/umartahir93/olivaw-assignment/pkg/gateway"
 	"github.com/umartahir93/olivaw-assignment/pkg/gateway/domain"
 )
 
@@ -37,7 +38,7 @@ var (
 func ptr[T any](v T) *T { return &v }
 
 // register registers gateways through the service.
-func register(t *testing.T, s *Service, gateways ...domain.Gateway) {
+func register(t *testing.T, s *gateway.Service, gateways ...domain.Gateway) {
 	t.Helper()
 	for _, g := range gateways {
 		if _, err := s.RegisterGateway(context.Background(), domain.Gateway{ID: g.ID, SerialNumber: g.SerialNumber, Location: g.Location}); err != nil {
@@ -108,8 +109,8 @@ func TestRegisterGateway(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &FakeRepository{}
-			s := NewService(repo)
+			repo := &gateway.FakeRepository{}
+			s := gateway.NewService(repo)
 			register(t, s, gateway1)
 			repo.Err = tt.repoErr
 
@@ -145,7 +146,7 @@ func TestGetGateway(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewService(&FakeRepository{})
+			s := gateway.NewService(&gateway.FakeRepository{})
 			register(t, s, gateway1)
 
 			got, err := s.GetGateway(context.Background(), tt.id)
@@ -197,8 +198,8 @@ func TestListGateways(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &FakeRepository{}
-			s := NewService(repo)
+			repo := &gateway.FakeRepository{}
+			s := gateway.NewService(repo)
 			register(t, s, tt.registered...)
 			repo.Err = tt.repoErr
 
@@ -240,8 +241,8 @@ func TestMarkSeen(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := &FakeRepository{}
-			s := NewService(repo)
+			repo := &gateway.FakeRepository{}
+			s := gateway.NewService(repo)
 			register(t, s, gateway1)
 
 			got, err := s.MarkSeen(context.Background(), tt.id)
