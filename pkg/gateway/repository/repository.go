@@ -26,18 +26,22 @@ func New() *Repository {
 	return &Repository{}
 }
 
+// CreateGateway is not implemented yet.
 func (r *Repository) CreateGateway(context.Context, domain.Gateway) (domain.Gateway, error) {
 	return domain.Gateway{}, ErrUnimplemented
 }
 
+// GetGateway is not implemented yet.
 func (r *Repository) GetGateway(context.Context, uuid.UUID) (domain.Gateway, error) {
 	return domain.Gateway{}, ErrUnimplemented
 }
 
+// ListGateways is not implemented yet.
 func (r *Repository) ListGateways(context.Context) ([]domain.Gateway, error) {
 	return nil, ErrUnimplemented
 }
 
-func (r *Repository) TouchGateway(context.Context, uuid.UUID, time.Time) (domain.Gateway, error) {
+// UpdateGatewayLastSeen is not implemented yet.
+func (r *Repository) UpdateGatewayLastSeen(context.Context, uuid.UUID, time.Time) (domain.Gateway, error) {
 	return domain.Gateway{}, ErrUnimplemented
 }

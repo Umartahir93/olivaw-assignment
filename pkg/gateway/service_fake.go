@@ -18,6 +18,7 @@ type FakeRepository struct {
 
 var _ Repository = (*FakeRepository)(nil)
 
+// CreateGateway stores g, or returns domain.ErrAlreadyExists if its serial number is taken.
 func (f *FakeRepository) CreateGateway(_ context.Context, g domain.Gateway) (domain.Gateway, error) {
 	if f.Err != nil {
 		return domain.Gateway{}, f.Err
@@ -31,6 +32,7 @@ func (f *FakeRepository) CreateGateway(_ context.Context, g domain.Gateway) (dom
 	return g, nil
 }
 
+// GetGateway returns the gateway with this ID, or domain.ErrNotFound.
 func (f *FakeRepository) GetGateway(_ context.Context, id uuid.UUID) (domain.Gateway, error) {
 	if f.Err != nil {
 		return domain.Gateway{}, f.Err
@@ -43,6 +45,7 @@ func (f *FakeRepository) GetGateway(_ context.Context, id uuid.UUID) (domain.Gat
 	return domain.Gateway{}, domain.ErrNotFound
 }
 
+// ListGateways returns all stored gateways in insertion order.
 func (f *FakeRepository) ListGateways(context.Context) ([]domain.Gateway, error) {
 	if f.Err != nil {
 		return nil, f.Err
@@ -50,7 +53,8 @@ func (f *FakeRepository) ListGateways(context.Context) ([]domain.Gateway, error)
 	return f.Gateways, nil
 }
 
-func (f *FakeRepository) TouchGateway(_ context.Context, id uuid.UUID, at time.Time) (domain.Gateway, error) {
+// UpdateGatewayLastSeen sets the gateway's LastSeenAt to at, or returns domain.ErrNotFound.
+func (f *FakeRepository) UpdateGatewayLastSeen(_ context.Context, id uuid.UUID, at time.Time) (domain.Gateway, error) {
 	if f.Err != nil {
 		return domain.Gateway{}, f.Err
 	}

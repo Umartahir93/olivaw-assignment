@@ -19,6 +19,7 @@ type FakeRepository struct {
 
 var _ Repository = (*FakeRepository)(nil)
 
+// CreateRobots stores robots.
 func (f *FakeRepository) CreateRobots(_ context.Context, robots []domain.Robot) ([]domain.Robot, error) {
 	if f.Err != nil {
 		return nil, f.Err
@@ -27,6 +28,7 @@ func (f *FakeRepository) CreateRobots(_ context.Context, robots []domain.Robot) 
 	return robots, nil
 }
 
+// GetRobot returns the robot with this ID, or domain.ErrNotFound.
 func (f *FakeRepository) GetRobot(_ context.Context, id uuid.UUID) (domain.Robot, error) {
 	if f.Err != nil {
 		return domain.Robot{}, f.Err
@@ -39,7 +41,8 @@ func (f *FakeRepository) GetRobot(_ context.Context, id uuid.UUID) (domain.Robot
 	return domain.Robot{}, domain.ErrNotFound
 }
 
-func (f *FakeRepository) RobotsBySerial(_ context.Context, serialNumbers []string) ([]domain.Robot, error) {
+// GetRobotsBySerial returns the stored robots with these serial numbers.
+func (f *FakeRepository) GetRobotsBySerial(_ context.Context, serialNumbers []string) ([]domain.Robot, error) {
 	if f.Err != nil {
 		return nil, f.Err
 	}
@@ -52,6 +55,7 @@ func (f *FakeRepository) RobotsBySerial(_ context.Context, serialNumbers []strin
 	return found, nil
 }
 
+// ListRobots returns the gateway's robots in insertion order.
 func (f *FakeRepository) ListRobots(_ context.Context, gatewayID uuid.UUID) ([]domain.Robot, error) {
 	if f.Err != nil {
 		return nil, f.Err
@@ -65,7 +69,8 @@ func (f *FakeRepository) ListRobots(_ context.Context, gatewayID uuid.UUID) ([]d
 	return robots, nil
 }
 
-func (f *FakeRepository) TouchRobot(_ context.Context, id uuid.UUID, at time.Time) (domain.Robot, error) {
+// UpdateRobotLastSeen sets the robot's LastSeenAt to at, or returns domain.ErrNotFound.
+func (f *FakeRepository) UpdateRobotLastSeen(_ context.Context, id uuid.UUID, at time.Time) (domain.Robot, error) {
 	if f.Err != nil {
 		return domain.Robot{}, f.Err
 	}

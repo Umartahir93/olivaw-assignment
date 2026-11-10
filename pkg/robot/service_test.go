@@ -5,66 +5,54 @@ package robot
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 
 	"github.com/umartahir93/olivaw-assignment/pkg/robot/domain"
 )
 
 var (
-	now      = time.Date(2026, 11, 10, 10, 0, 0, 0, time.UTC)
-	errDB    = errors.New("database down")
-	gateway1 = uuid.MustParse("10000000-0000-0000-0000-000000000001")
-	gateway2 = uuid.MustParse("20000000-0000-0000-0000-000000000002")
-)
+	now   = time.Now().UTC()
+	errDB = errors.New("database down")
 
-// id returns the n-th ID the test service hands out.
-func id(n int) uuid.UUID {
-	return uuid.MustParse(fmt.Sprintf("00000000-0000-0000-0000-%012d", n))
-}
+	// approxTime treats times less than a second apart as equal, because the
+	// service sets times itself with time.Now.
+	approxTime = cmpopts.EquateApproxTime(time.Second)
+
+	gateway1ID = uuid.New()
+	gateway2ID = uuid.New()
+
+	robot1ID = uuid.New() // SN-1
+	robot2ID = uuid.New() // SN-2
+	robot9ID = uuid.New() // SN-9
+)
 
 func ptr[T any](v T) *T { return &v }
 
-// newTestService returns a service with a fixed clock that hands out
-// id(1), id(2), … as IDs.
-func newTestService(repo *FakeRepository) *Service {
-	s := NewService(repo)
-	s.now = func() time.Time { return now }
-	n := 0
-	s.newID = func() uuid.UUID {
-		n++
-		return id(n)
-	}
-	return s
-}
-
-// robot is the robot with the n-th ID, as a scan creates it.
-func robot(n int, serial string, gatewayID uuid.UUID) domain.Robot {
+// scanned is a robot as a gateway reports it in a scan.
+func scanned(id uuid.UUID, serial string, gatewayID uuid.UUID) domain.Robot {
 	return domain.Robot{
-		ID:           id(n),
+		ID:           id,
 		SerialNumber: serial,
 		GatewayID:    gatewayID,
-		FirstSeenAt:  now,
 	}
 }
 
-// scanned turns serial numbers into the robots a scan of gatewayID found.
-func scanned(gatewayID uuid.UUID, serials ...string) []domain.Robot {
-	robots := make([]domain.Robot, len(serials))
-	for i, serial := range serials {
-		robots[i] = domain.Robot{SerialNumber: serial, GatewayID: gatewayID}
-	}
-	return robots
+// stored is a robot as the system stores it after its first scan.
+func stored(id uuid.UUID, serial string, gatewayID uuid.UUID) domain.Robot {
+	r := scanned(id, serial, gatewayID)
+	r.FirstSeenAt = now
+	return r
 }
 
-// scan reports serials for gatewayID and fails the test on error.
-func scan(t *testing.T, s *Service, gatewayID uuid.UUID, serials ...string) {
+// scan reports robots and fails the test on error.
+func scan(t *testing.T, s *Service, robots ...domain.Robot) {
 	t.Helper()
-	if _, err := s.ReportScan(context.Background(), scanned(gatewayID, serials...)); err != nil {
+	if _, err := s.ReportScan(context.Background(), robots); err != nil {
 		t.Fatalf("scan: %v", err)
 	}
 }
@@ -72,83 +60,104 @@ func scan(t *testing.T, s *Service, gatewayID uuid.UUID, serials ...string) {
 func TestReportScan(t *testing.T) {
 	tests := []struct {
 		name       string
-		earlier    []string // scanned by gateway 1 first
-		other      []string // scanned by gateway 2 next
-		scan       []string // scanned by gateway 1 under test
+		earlier    []domain.Robot // scanned before the scan under test
+		scan       []domain.Robot // the scan under test
 		repoErr    error
 		want       []domain.Robot
 		wantStored []domain.Robot
 		wantErr    error
 	}{
 		{
-			name: "first scan creates every robot",
-			scan: []string{"SN-1", "SN-2"},
+			name: "first scan stores every robot",
+			scan: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+				scanned(robot2ID, "SN-2", gateway1ID),
+			},
 			want: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
+				stored(robot2ID, "SN-2", gateway1ID),
 			},
 			wantStored: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
+				stored(robot2ID, "SN-2", gateway1ID),
 			},
 		},
 		{
-			name:    "same scan again changes nothing",
-			earlier: []string{"SN-1", "SN-2"},
-			scan:    []string{"SN-1", "SN-2"},
+			name: "known robot keeps its stored ID",
+			earlier: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+			},
+			scan: []domain.Robot{
+				scanned(uuid.New(), "SN-1", gateway1ID),
+			},
 			want: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
 			},
 			wantStored: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
 			},
 		},
 		{
-			name:    "new robot joins known ones",
-			earlier: []string{"SN-1"},
-			scan:    []string{"SN-1", "SN-2"},
+			name: "new robot joins known ones",
+			earlier: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+			},
+			scan: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+				scanned(robot2ID, "SN-2", gateway1ID),
+			},
 			want: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
+				stored(robot2ID, "SN-2", gateway1ID),
 			},
 			wantStored: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
+				stored(robot2ID, "SN-2", gateway1ID),
 			},
 		},
 		{
-			name:    "robot missing from the scan is kept",
-			earlier: []string{"SN-1", "SN-2"},
-			scan:    []string{"SN-1"},
+			name: "robot missing from the scan is kept",
+			earlier: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+				scanned(robot2ID, "SN-2", gateway1ID),
+			},
+			scan: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+			},
 			want: []domain.Robot{
-				robot(1, "SN-1", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
 			},
 			wantStored: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
+				stored(robot2ID, "SN-2", gateway1ID),
 			},
 		},
 		{
 			name:       "empty scan",
-			scan:       []string{},
+			scan:       []domain.Robot{},
 			want:       []domain.Robot{},
 			wantStored: nil,
 		},
 		{
-			name:  "robot of another gateway is rejected",
-			other: []string{"SN-9"},
-			scan:  []string{"SN-1", "SN-9"},
-			want:  nil,
+			name: "robot of another gateway is rejected",
+			earlier: []domain.Robot{
+				scanned(robot9ID, "SN-9", gateway2ID),
+			},
+			scan: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+				scanned(robot9ID, "SN-9", gateway1ID),
+			},
+			want: nil,
 			wantStored: []domain.Robot{
-				robot(1, "SN-9", gateway2),
+				stored(robot9ID, "SN-9", gateway2ID),
 			},
 			wantErr: domain.ErrOtherGateway,
 		},
 		{
-			name:       "repository fails",
-			scan:       []string{"SN-1"},
+			name: "repository fails",
+			scan: []domain.Robot{
+				scanned(robot1ID, "SN-1", gateway1ID),
+			},
 			repoErr:    errDB,
 			want:       nil,
 			wantStored: nil,
@@ -158,20 +167,19 @@ func TestReportScan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &FakeRepository{}
-			s := newTestService(repo)
-			scan(t, s, gateway1, tt.earlier...)
-			scan(t, s, gateway2, tt.other...)
+			s := NewService(repo)
+			scan(t, s, tt.earlier...)
 			repo.Err = tt.repoErr
 
-			got, err := s.ReportScan(context.Background(), scanned(gateway1, tt.scan...))
+			got, err := s.ReportScan(context.Background(), tt.scan)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, approxTime); diff != "" {
 				t.Errorf("robots mismatch (-want +got):\n%s", diff)
 			}
-			if diff := cmp.Diff(tt.wantStored, repo.Robots); diff != "" {
+			if diff := cmp.Diff(tt.wantStored, repo.Robots, approxTime); diff != "" {
 				t.Errorf("stored robots mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -186,10 +194,10 @@ func TestGatewayRobots(t *testing.T) {
 	}{
 		{
 			name:    "gateway with robots",
-			gateway: gateway1,
+			gateway: gateway1ID,
 			want: []domain.Robot{
-				robot(1, "SN-1", gateway1),
-				robot(2, "SN-2", gateway1),
+				stored(robot1ID, "SN-1", gateway1ID),
+				stored(robot2ID, "SN-2", gateway1ID),
 			},
 		},
 		{
@@ -200,16 +208,19 @@ func TestGatewayRobots(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newTestService(&FakeRepository{})
-			scan(t, s, gateway1, "SN-1", "SN-2")
-			scan(t, s, gateway2, "SN-9")
+			s := NewService(&FakeRepository{})
+			scan(t, s,
+				scanned(robot1ID, "SN-1", gateway1ID),
+				scanned(robot2ID, "SN-2", gateway1ID),
+				scanned(robot9ID, "SN-9", gateway2ID),
+			)
 
 			got, err := s.GatewayRobots(context.Background(), tt.gateway)
 
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, approxTime); diff != "" {
 				t.Errorf("robots mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -225,8 +236,8 @@ func TestGetRobot(t *testing.T) {
 	}{
 		{
 			name: "known",
-			id:   id(1),
-			want: robot(1, "SN-1", gateway1),
+			id:   robot1ID,
+			want: stored(robot1ID, "SN-1", gateway1ID),
 		},
 		{
 			name:    "unknown",
@@ -236,15 +247,15 @@ func TestGetRobot(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newTestService(&FakeRepository{})
-			scan(t, s, gateway1, "SN-1")
+			s := NewService(&FakeRepository{})
+			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
 
 			got, err := s.GetRobot(context.Background(), tt.id)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, approxTime); diff != "" {
 				t.Errorf("robot mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -252,7 +263,7 @@ func TestGetRobot(t *testing.T) {
 }
 
 func TestMarkSeen(t *testing.T) {
-	seen := robot(1, "SN-1", gateway1)
+	seen := stored(robot1ID, "SN-1", gateway1ID)
 	seen.LastSeenAt = ptr(now)
 
 	tests := []struct {
@@ -265,41 +276,41 @@ func TestMarkSeen(t *testing.T) {
 	}{
 		{
 			name:       "robot of this gateway",
-			gateway:    gateway1,
-			robot:      id(1),
+			gateway:    gateway1ID,
+			robot:      robot1ID,
 			want:       seen,
 			wantStored: []domain.Robot{seen},
 		},
 		{
 			name:       "robot of another gateway",
-			gateway:    gateway2,
-			robot:      id(1),
-			wantStored: []domain.Robot{robot(1, "SN-1", gateway1)},
+			gateway:    gateway2ID,
+			robot:      robot1ID,
+			wantStored: []domain.Robot{stored(robot1ID, "SN-1", gateway1ID)},
 			wantErr:    domain.ErrOtherGateway,
 		},
 		{
 			name:       "unknown robot",
-			gateway:    gateway1,
+			gateway:    gateway1ID,
 			robot:      uuid.New(),
-			wantStored: []domain.Robot{robot(1, "SN-1", gateway1)},
+			wantStored: []domain.Robot{stored(robot1ID, "SN-1", gateway1ID)},
 			wantErr:    domain.ErrNotFound,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &FakeRepository{}
-			s := newTestService(repo)
-			scan(t, s, gateway1, "SN-1")
+			s := NewService(repo)
+			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
 
 			got, err := s.MarkSeen(context.Background(), tt.gateway, tt.robot)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, approxTime); diff != "" {
 				t.Errorf("robot mismatch (-want +got):\n%s", diff)
 			}
-			if diff := cmp.Diff(tt.wantStored, repo.Robots); diff != "" {
+			if diff := cmp.Diff(tt.wantStored, repo.Robots, approxTime); diff != "" {
 				t.Errorf("stored robots mismatch (-want +got):\n%s", diff)
 			}
 		})

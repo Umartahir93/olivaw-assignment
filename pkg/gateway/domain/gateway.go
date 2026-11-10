@@ -24,6 +24,7 @@ const OfflineAfter = 5 * time.Minute
 // Connectivity is whether the system hears from a gateway or robot.
 type Connectivity string
 
+// Connectivity values.
 const (
 	ConnectivityUnknown Connectivity = "unknown" // no contact yet
 	ConnectivityOnline  Connectivity = "online"  // contact within OfflineAfter
@@ -48,9 +49,10 @@ type Gateway struct {
 	ID           uuid.UUID
 	SerialNumber string
 	Location     string
-	Name         *string // optional
+	Name         *string
 	RegisteredAt time.Time
-	LastSeenAt   *time.Time // nil until the gateway's first call
+	// nil until the gateway's first call
+	LastSeenAt *time.Time
 }
 
 // Connectivity derives the gateway's connectivity at now.

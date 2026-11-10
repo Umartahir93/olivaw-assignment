@@ -26,22 +26,27 @@ func New() *Repository {
 	return &Repository{}
 }
 
+// CreateRobots is not implemented yet.
 func (r *Repository) CreateRobots(context.Context, []domain.Robot) ([]domain.Robot, error) {
 	return nil, ErrUnimplemented
 }
 
+// GetRobot is not implemented yet.
 func (r *Repository) GetRobot(context.Context, uuid.UUID) (domain.Robot, error) {
 	return domain.Robot{}, ErrUnimplemented
 }
 
-func (r *Repository) RobotsBySerial(context.Context, []string) ([]domain.Robot, error) {
+// GetRobotsBySerial is not implemented yet.
+func (r *Repository) GetRobotsBySerial(context.Context, []string) ([]domain.Robot, error) {
 	return nil, ErrUnimplemented
 }
 
+// ListRobots is not implemented yet.
 func (r *Repository) ListRobots(context.Context, uuid.UUID) ([]domain.Robot, error) {
 	return nil, ErrUnimplemented
 }
 
-func (r *Repository) TouchRobot(context.Context, uuid.UUID, time.Time) (domain.Robot, error) {
+// UpdateRobotLastSeen is not implemented yet.
+func (r *Repository) UpdateRobotLastSeen(context.Context, uuid.UUID, time.Time) (domain.Robot, error) {
 	return domain.Robot{}, ErrUnimplemented
 }

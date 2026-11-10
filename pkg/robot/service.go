@@ -7,7 +7,6 @@ package robot
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,29 +15,29 @@ import (
 )
 
 // Repository stores robots. Lists are ordered oldest first by FirstSeenAt.
+// It reports an unknown robot as domain.ErrNotFound. Any other error means
+// the storage itself failed.
 type Repository interface {
 	CreateRobots(ctx context.Context, robots []domain.Robot) ([]domain.Robot, error)
 	GetRobot(ctx context.Context, id uuid.UUID) (domain.Robot, error)
-	RobotsBySerial(ctx context.Context, serialNumbers []string) ([]domain.Robot, error)
+	GetRobotsBySerial(ctx context.Context, serialNumbers []string) ([]domain.Robot, error)
 	ListRobots(ctx context.Context, gatewayID uuid.UUID) ([]domain.Robot, error)
-	TouchRobot(ctx context.Context, id uuid.UUID, at time.Time) (domain.Robot, error)
+	UpdateRobotLastSeen(ctx context.Context, id uuid.UUID, at time.Time) (domain.Robot, error)
 }
 
 // Service handles robots.
 type Service struct {
-	repo  Repository
-	now   func() time.Time
-	newID func() uuid.UUID
+	repo Repository
 }
 
 // NewService returns a Service that stores robots in repo.
 func NewService(repo Repository) *Service {
-	return &Service{repo: repo, now: time.Now, newID: uuid.New}
+	return &Service{repo: repo}
 }
 
-// ReportScan takes the robots a gateway's scan found, each with its serial number and the gateway's ID, and returns them as the system knows
-// them, in the same order. Robots seen for the first time get an ID; known robots keep theirs; robots missing from the scan are left as they
-// are. Reporting the same scan twice changes nothing.
+// ReportScan takes the robots a gateway's scan found, each with an ID, its serial number and the gateway's ID, and returns them as the system
+// knows them, in the same order. Robots seen for the first time are stored with the given ID; known robots keep their stored ID; robots
+// missing from the scan are left as they are. Reporting the same scan twice changes nothing.
 //
 // It returns domain.ErrOtherGateway if a scanned robot belongs to another
 // gateway, and stores nothing in that case.
@@ -47,30 +46,30 @@ func (s *Service) ReportScan(ctx context.Context, scanned []domain.Robot) ([]dom
 	for i, r := range scanned {
 		serials[i] = r.SerialNumber
 	}
-	known, err := s.repo.RobotsBySerial(ctx, serials)
+	known, err := s.repo.GetRobotsBySerial(ctx, serials)
 	if err != nil {
-		return nil, fmt.Errorf("report scan: %w", err)
+		return nil, err
 	}
 	bySerial := make(map[string]domain.Robot, len(known))
 	for _, r := range known {
 		bySerial[r.SerialNumber] = r
 	}
 
-	now := s.now().UTC()
+	now := time.Now().UTC()
 	var newRobots []domain.Robot
 	for _, r := range scanned {
 		k, ok := bySerial[r.SerialNumber]
 		switch {
 		case ok && k.GatewayID != r.GatewayID:
-			return nil, fmt.Errorf("report scan: %s: %w", r.SerialNumber, domain.ErrOtherGateway)
+			return nil, domain.ErrOtherGateway
 		case !ok:
-			newRobots = append(newRobots, domain.Robot{ID: s.newID(), SerialNumber: r.SerialNumber, GatewayID: r.GatewayID, FirstSeenAt: now})
+			newRobots = append(newRobots, domain.Robot{ID: r.ID, SerialNumber: r.SerialNumber, GatewayID: r.GatewayID, FirstSeenAt: now})
 		}
 	}
 	if len(newRobots) > 0 {
-		created, err := s.repo.CreateRobots(ctx, newRobots)
-		if err != nil {
-			return nil, fmt.Errorf("report scan: %w", err)
+		var created []domain.Robot
+		if created, err = s.repo.CreateRobots(ctx, newRobots); err != nil {
+			return nil, err
 		}
 		for _, r := range created {
 			bySerial[r.SerialNumber] = r
@@ -89,20 +88,12 @@ func (s *Service) ReportScan(ctx context.Context, scanned []domain.Robot) ([]dom
 // after a restart. Whether the gateway exists is checked by the caller. For
 // the sake of simplicity there is no pagination.
 func (s *Service) GatewayRobots(ctx context.Context, gatewayID uuid.UUID) ([]domain.Robot, error) {
-	robots, err := s.repo.ListRobots(ctx, gatewayID)
-	if err != nil {
-		return nil, fmt.Errorf("gateway robots: %w", err)
-	}
-	return robots, nil
+	return s.repo.ListRobots(ctx, gatewayID)
 }
 
 // GetRobot returns one robot, or domain.ErrNotFound.
 func (s *Service) GetRobot(ctx context.Context, id uuid.UUID) (domain.Robot, error) {
-	r, err := s.repo.GetRobot(ctx, id)
-	if err != nil {
-		return domain.Robot{}, fmt.Errorf("get robot: %w", err)
-	}
-	return r, nil
+	return s.repo.GetRobot(ctx, id)
 }
 
 // MarkSeen marks a robot as seen now, which makes it online; data from the
@@ -112,14 +103,10 @@ func (s *Service) GetRobot(ctx context.Context, id uuid.UUID) (domain.Robot, err
 func (s *Service) MarkSeen(ctx context.Context, gatewayID, robotID uuid.UUID) (domain.Robot, error) {
 	stored, err := s.repo.GetRobot(ctx, robotID)
 	if err != nil {
-		return domain.Robot{}, fmt.Errorf("mark seen: %w", err)
+		return domain.Robot{}, err
 	}
 	if stored.GatewayID != gatewayID {
-		return domain.Robot{}, fmt.Errorf("mark seen: %w", domain.ErrOtherGateway)
+		return domain.Robot{}, domain.ErrOtherGateway
 	}
-	seen, err := s.repo.TouchRobot(ctx, robotID, s.now().UTC())
-	if err != nil {
-		return domain.Robot{}, fmt.Errorf("mark seen: %w", err)
-	}
-	return seen, nil
+	return s.repo.UpdateRobotLastSeen(ctx, robotID, time.Now().UTC())
 }
