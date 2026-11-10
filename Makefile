@@ -5,7 +5,7 @@ export PATH := $(BIN):$(PATH)
 
 .PHONY: help
 help: ## Show this help.
-	@awk 'BEGIN {FS = ":.*## "} /^##@/ {printf "\n%s\n", substr($$0, 5)} /^[a-z-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*## "} /^##@/ {printf "\n%s\n", substr($$0, 5)} /^[a-z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 .PHONY: generate
 generate: grpc-generate rest-generate ## Generate Go code from both API contracts into ./gen.
@@ -47,13 +47,25 @@ clean-tools: ## Remove the tools installed in ./bin.
 
 ##@ Go
 
-.PHONY: test
-test: ## Run the unit tests.
-	go test -race ./...
+# Each kind of test has its own build tag and runs on its own:
+#   unit         //go:build unit         no external dependencies
+#   integration  //go:build integration  real dependencies, e.g. the database
+#   e2e          //go:build e2e          the running system, called over its APIs
+.PHONY: test_unit
+test_unit: ## Run the unit tests (files tagged //go:build unit).
+	go test -tags unit -race ./...
+
+.PHONY: test_integration
+test_integration: ## Run the integration tests (files tagged //go:build integration).
+	go test -tags integration -race -count=1 ./...
+
+.PHONY: test_e2e
+test_e2e: ## Run the end-to-end tests (files tagged //go:build e2e).
+	go test -tags e2e -count=1 ./...
 
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT) ## Lint the Go code with golangci-lint.
-	$(GOLANGCI_LINT) run ./...
+	$(GOLANGCI_LINT) run --build-tags unit,integration,e2e ./...
 
 ##@ Simulator
 
