@@ -9,9 +9,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Creates the fleet_test database that integration tests use, so they
-      # never touch development data.
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      # Test setup: creates the fleet_test database that integration tests
+      # use, so they never touch development data.
+      - ./test/postgres:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fleet -d fleet"]
       interval: 2s
@@ -31,6 +31,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      # The image has no shell or curl; the binary checks itself.
+      test: ["CMD", "/fleet", "-health-check"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
 
   # The gateway simulator, sending its robots' measurements to the server.
   simulator:
@@ -39,12 +45,11 @@ services:
       target: simulator
     command: ["-server", "fleet:9090", "-rest", "http://fleet:8080", "-robots", "5"]
     depends_on:
-      - fleet
-    # The server may still be migrating when the simulator first calls it.
-    restart: on-failure
+      fleet:
+        condition: service_healthy
 
   # Integration tests in a Go container next to the database. Only started on
-  # demand (`make docker-test-integration`), never by `make up`.
+  # demand (`make test_integration_docker`), never by `make up`.
   integration-tests:
     profiles: [test]
     image: golang:1.26
@@ -58,6 +63,24 @@ services:
     command: ["go", "test", "-tags", "integration", "-race", "-count=1", "-p", "1", "./..."]
     depends_on:
       db:
+        condition: service_healthy
+
+  # End-to-end tests in a Go container, against the server in Docker over its
+  # REST and gRPC APIs. Only started on demand (`make test_e2e_docker`).
+  e2e-tests:
+    profiles: [test]
+    image: golang:1.26
+    working_dir: /src
+    volumes:
+      - .:/src
+      - go-mod:/go/pkg/mod
+      - go-build:/root/.cache/go-build
+    environment:
+      FLEET_REST_URL: http://fleet:8080
+      FLEET_GRPC_ADDR: fleet:9090
+    command: ["go", "test", "-tags", "e2e", "-count=1", "-v", "./test/e2e/..."]
+    depends_on:
+      fleet:
         condition: service_healthy
 
 volumes:

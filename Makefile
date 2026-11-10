@@ -51,6 +51,11 @@ clean-tools: ## Remove the tools installed in ./bin.
 #   unit         //go:build unit         no external dependencies
 #   integration  //go:build integration  real dependencies, e.g. the database
 #   e2e          //go:build e2e          the running system, called over its APIs
+.PHONY: vendor
+vendor: ## Tidy go.mod and refresh vendor/ after adding, removing or upgrading a dependency.
+	go mod tidy
+	go mod vendor
+
 .PHONY: test_unit
 test_unit: ## Run the unit tests (files tagged //go:build unit).
 	go test -tags unit -race ./...
@@ -62,8 +67,8 @@ integration_test: db-up ## Run the integration tests against the test database (
 	go test -tags integration -race -count=1 -p 1 ./...
 
 .PHONY: test_e2e
-test_e2e: ## Run the end-to-end tests (files tagged //go:build e2e).
-	go test -tags e2e -count=1 ./...
+test_e2e: ## Run the end-to-end tests against the running system (start it with `make up`).
+	go test -tags e2e -count=1 ./test/e2e/...
 
 .PHONY: lint-go
 lint-go: $(GOLANGCI_LINT) ## Lint the Go code with golangci-lint.
@@ -102,8 +107,13 @@ test_unit_docker: ## Run the unit tests in a Go container.
 test_integration_docker: ## Run the integration tests in a Go container next to the database.
 	$(COMPOSE) --profile test run --rm integration-tests
 
+.PHONY: test_e2e_docker
+test_e2e_docker: ## Rebuild and start the server in Docker, then run the end-to-end tests in a Go container against it.
+	$(COMPOSE) up -d --build --wait fleet
+	$(COMPOSE) --profile test run --rm e2e-tests
+
 .PHONY: docker_test
-docker_test: test_integration_docker test_unit_docker ## Run unit and integration tests in Docker.
+docker_test: test_integration_docker test_unit_docker test_e2e_docker ## Run unit, integration and end-to-end tests in Docker.
 
 .PHONY: docker_lint
 docker_lint: ## Lint the Go code in a golangci-lint container.
