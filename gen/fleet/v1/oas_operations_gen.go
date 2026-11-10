@@ -6,10 +6,11 @@ package fleetv1
 type OperationName = string
 
 const (
-	CreateRobotOperation        OperationName = "CreateRobot"
-	DecommissionRobotOperation  OperationName = "DecommissionRobot"
-	GetRobotOperation           OperationName = "GetRobot"
-	ListRobotFaultsOperation    OperationName = "ListRobotFaults"
-	ListRobotTelemetryOperation OperationName = "ListRobotTelemetry"
-	ListRobotsOperation         OperationName = "ListRobots"
+	CreateGatewayOperation         OperationName = "CreateGateway"
+	GetGatewayOperation            OperationName = "GetGateway"
+	GetRobotOperation              OperationName = "GetRobot"
+	ListGatewayRobotsOperation     OperationName = "ListGatewayRobots"
+	ListGatewaysOperation          OperationName = "ListGateways"
+	ListRobotFaultsOperation       OperationName = "ListRobotFaults"
+	ListRobotMeasurementsOperation OperationName = "ListRobotMeasurements"
 )

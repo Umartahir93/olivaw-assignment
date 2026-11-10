@@ -12,9 +12,9 @@ import (
 	"github.com/ogen-go/ogen/uri"
 )
 
-func encodeCreateRobotResponse(response CreateRobotRes, w http.ResponseWriter) error {
+func encodeCreateGatewayResponse(response CreateGatewayRes, w http.ResponseWriter) error {
 	switch response := response.(type) {
-	case *RobotHeaders:
+	case *GatewayHeaders:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Access-Control-Expose-Headers", "Location")
 		// Encoding response headers.
@@ -46,7 +46,7 @@ func encodeCreateRobotResponse(response CreateRobotRes, w http.ResponseWriter) e
 
 		return nil
 
-	case *CreateRobotBadRequest:
+	case *CreateGatewayBadRequest:
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(400)
 
@@ -58,7 +58,7 @@ func encodeCreateRobotResponse(response CreateRobotRes, w http.ResponseWriter) e
 
 		return nil
 
-	case *CreateRobotConflict:
+	case *CreateGatewayConflict:
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(409)
 
@@ -75,14 +75,21 @@ func encodeCreateRobotResponse(response CreateRobotRes, w http.ResponseWriter) e
 	}
 }
 
-func encodeDecommissionRobotResponse(response DecommissionRobotRes, w http.ResponseWriter) error {
+func encodeGetGatewayResponse(response GetGatewayRes, w http.ResponseWriter) error {
 	switch response := response.(type) {
-	case *DecommissionRobotNoContent:
-		w.WriteHeader(204)
+	case *Gateway:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
 
 		return nil
 
-	case *DecommissionRobotBadRequest:
+	case *GetGatewayBadRequest:
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(400)
 
@@ -94,7 +101,7 @@ func encodeDecommissionRobotResponse(response DecommissionRobotRes, w http.Respo
 
 		return nil
 
-	case *DecommissionRobotNotFound:
+	case *GetGatewayNotFound:
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(404)
 
@@ -154,6 +161,80 @@ func encodeGetRobotResponse(response GetRobotRes, w http.ResponseWriter) error {
 	}
 }
 
+func encodeListGatewayRobotsResponse(response ListGatewayRobotsRes, w http.ResponseWriter) error {
+	switch response := response.(type) {
+	case *RobotPage:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListGatewayRobotsBadRequest:
+		w.Header().Set("Content-Type", "application/problem+json")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListGatewayRobotsNotFound:
+		w.Header().Set("Content-Type", "application/problem+json")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
+func encodeListGatewaysResponse(response ListGatewaysRes, w http.ResponseWriter) error {
+	switch response := response.(type) {
+	case *GatewayPage:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *Problem:
+		w.Header().Set("Content-Type", "application/problem+json")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeListRobotFaultsResponse(response ListRobotFaultsRes, w http.ResponseWriter) error {
 	switch response := response.(type) {
 	case *FaultPage:
@@ -197,9 +278,9 @@ func encodeListRobotFaultsResponse(response ListRobotFaultsRes, w http.ResponseW
 	}
 }
 
-func encodeListRobotTelemetryResponse(response ListRobotTelemetryRes, w http.ResponseWriter) error {
+func encodeListRobotMeasurementsResponse(response ListRobotMeasurementsRes, w http.ResponseWriter) error {
 	switch response := response.(type) {
-	case *TelemetryPage:
+	case *MeasurementPage:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(200)
 
@@ -211,7 +292,7 @@ func encodeListRobotTelemetryResponse(response ListRobotTelemetryRes, w http.Res
 
 		return nil
 
-	case *ListRobotTelemetryBadRequest:
+	case *ListRobotMeasurementsBadRequest:
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(400)
 
@@ -223,40 +304,9 @@ func encodeListRobotTelemetryResponse(response ListRobotTelemetryRes, w http.Res
 
 		return nil
 
-	case *ListRobotTelemetryNotFound:
+	case *ListRobotMeasurementsNotFound:
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(404)
-
-		e := new(jx.Encoder)
-		response.Encode(e)
-		if _, err := e.WriteTo(w); err != nil {
-			return errors.Wrap(err, "write")
-		}
-
-		return nil
-
-	default:
-		return errors.Errorf("unexpected response type: %T", response)
-	}
-}
-
-func encodeListRobotsResponse(response ListRobotsRes, w http.ResponseWriter) error {
-	switch response := response.(type) {
-	case *RobotPage:
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(200)
-
-		e := new(jx.Encoder)
-		response.Encode(e)
-		if _, err := e.WriteTo(w); err != nil {
-			return errors.Wrap(err, "write")
-		}
-
-		return nil
-
-	case *Problem:
-		w.Header().Set("Content-Type", "application/problem+json")
-		w.WriteHeader(400)
 
 		e := new(jx.Encoder)
 		response.Encode(e)

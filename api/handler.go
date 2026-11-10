@@ -26,34 +26,49 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
-// ListRobots handles GET /v1/robots.
-func (h *Handler) ListRobots(context.Context, fleetv1.ListRobotsParams) (fleetv1.ListRobotsRes, error) {
-	return &fleetv1.RobotPage{Items: []fleetv1.Robot{}}, nil
-}
-
-// CreateRobot handles POST /v1/robots.
-func (h *Handler) CreateRobot(context.Context, *fleetv1.RobotCreate) (fleetv1.CreateRobotRes, error) {
-	robot := stubRobot()
-	return &fleetv1.RobotHeaders{
-		Location: fleetv1.NewOptURI(url.URL{Path: "/v1/robots/" + robot.RobotId.String()}),
-		Response: robot,
+// CreateGateway handles POST /v1/gateways.
+func (h *Handler) CreateGateway(_ context.Context, req *fleetv1.GatewayCreate) (fleetv1.CreateGatewayRes, error) {
+	gateway := stubGateway()
+	gateway.SerialNumber = req.SerialNumber
+	gateway.Location = req.Location
+	gateway.Name = req.Name
+	return &fleetv1.GatewayHeaders{
+		Location: fleetv1.NewOptURI(url.URL{Path: "/v1/gateways/" + gateway.GatewayId.String()}),
+		Response: gateway,
 	}, nil
 }
 
+// ListGateways handles GET /v1/gateways.
+func (h *Handler) ListGateways(context.Context, fleetv1.ListGatewaysParams) (fleetv1.ListGatewaysRes, error) {
+	return &fleetv1.GatewayPage{Items: []fleetv1.Gateway{}}, nil
+}
+
+// GetGateway handles GET /v1/gateways/{gatewayId}.
+func (h *Handler) GetGateway(_ context.Context, params fleetv1.GetGatewayParams) (fleetv1.GetGatewayRes, error) {
+	gateway := stubGateway()
+	gateway.GatewayId = params.GatewayId
+	return &gateway, nil
+}
+
+// ListGatewayRobots handles GET /v1/gateways/{gatewayId}/robots.
+func (h *Handler) ListGatewayRobots(context.Context, fleetv1.ListGatewayRobotsParams) (fleetv1.ListGatewayRobotsRes, error) {
+	return &fleetv1.RobotPage{Items: []fleetv1.Robot{}}, nil
+}
+
 // GetRobot handles GET /v1/robots/{robotId}.
-func (h *Handler) GetRobot(context.Context, fleetv1.GetRobotParams) (fleetv1.GetRobotRes, error) {
-	robot := stubRobot()
-	return &robot, nil
+func (h *Handler) GetRobot(_ context.Context, params fleetv1.GetRobotParams) (fleetv1.GetRobotRes, error) {
+	return &fleetv1.Robot{
+		RobotId:      params.RobotId,
+		SerialNumber: "stub",
+		GatewayId:    uuid.New(),
+		FirstSeenAt:  time.Now().UTC(),
+		Connectivity: fleetv1.ConnectivityUnknown,
+	}, nil
 }
 
-// DecommissionRobot handles DELETE /v1/robots/{robotId}.
-func (h *Handler) DecommissionRobot(context.Context, fleetv1.DecommissionRobotParams) (fleetv1.DecommissionRobotRes, error) {
-	return &fleetv1.DecommissionRobotNoContent{}, nil
-}
-
-// ListRobotTelemetry handles GET /v1/robots/{robotId}/telemetry.
-func (h *Handler) ListRobotTelemetry(context.Context, fleetv1.ListRobotTelemetryParams) (fleetv1.ListRobotTelemetryRes, error) {
-	return &fleetv1.TelemetryPage{Items: []fleetv1.TelemetryReading{}}, nil
+// ListRobotMeasurements handles GET /v1/robots/{robotId}/measurements.
+func (h *Handler) ListRobotMeasurements(context.Context, fleetv1.ListRobotMeasurementsParams) (fleetv1.ListRobotMeasurementsRes, error) {
+	return &fleetv1.MeasurementPage{Items: []fleetv1.Measurement{}}, nil
 }
 
 // ListRobotFaults handles GET /v1/robots/{robotId}/faults.
@@ -72,14 +87,13 @@ func (h *Handler) NewError(_ context.Context, _ error) *fleetv1.ErrorStatusCode 
 	}
 }
 
-// stubRobot is a newly onboarded robot that has not sent any data yet.
-func stubRobot() fleetv1.Robot {
-	return fleetv1.Robot{
-		RobotId:      uuid.New(),
+// stubGateway is a newly registered gateway that has not called yet.
+func stubGateway() fleetv1.Gateway {
+	return fleetv1.Gateway{
+		GatewayId:    uuid.New(),
 		SerialNumber: "stub",
 		Location:     "stub",
-		Status:       fleetv1.RobotStatusActive,
 		RegisteredAt: time.Now().UTC(),
-		Connectivity: fleetv1.ConnectivityNeverSeen,
+		Connectivity: fleetv1.ConnectivityUnknown,
 	}
 }

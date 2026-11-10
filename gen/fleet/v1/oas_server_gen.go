@@ -8,25 +8,36 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
-	// CreateRobot implements createRobot operation.
+	// CreateGateway implements createGateway operation.
 	//
-	// Onboard a robot.
+	// Register a gateway.
 	//
-	// POST /v1/robots
-	CreateRobot(ctx context.Context, req *RobotCreate) (CreateRobotRes, error)
-	// DecommissionRobot implements decommissionRobot operation.
+	// POST /v1/gateways
+	CreateGateway(ctx context.Context, req *GatewayCreate) (CreateGatewayRes, error)
+	// GetGateway implements getGateway operation.
 	//
-	// The robot stays available with status `decommissioned` and no longer reports new telemetry.
-	// Repeating the call also succeeds.
+	// Get a gateway.
 	//
-	// DELETE /v1/robots/{robotId}
-	DecommissionRobot(ctx context.Context, params DecommissionRobotParams) (DecommissionRobotRes, error)
+	// GET /v1/gateways/{gatewayId}
+	GetGateway(ctx context.Context, params GetGatewayParams) (GetGatewayRes, error)
 	// GetRobot implements getRobot operation.
 	//
-	// Get a robot with its current state.
+	// Get a robot and its current state.
 	//
 	// GET /v1/robots/{robotId}
 	GetRobot(ctx context.Context, params GetRobotParams) (GetRobotRes, error)
+	// ListGatewayRobots implements listGatewayRobots operation.
+	//
+	// List a gateway's robots and their current state.
+	//
+	// GET /v1/gateways/{gatewayId}/robots
+	ListGatewayRobots(ctx context.Context, params ListGatewayRobotsParams) (ListGatewayRobotsRes, error)
+	// ListGateways implements listGateways operation.
+	//
+	// List gateways.
+	//
+	// GET /v1/gateways
+	ListGateways(ctx context.Context, params ListGatewaysParams) (ListGatewaysRes, error)
 	// ListRobotFaults implements listRobotFaults operation.
 	//
 	// Returns faults from a time range of at most 24 hours, on any date. Without `from` and `to`, that is
@@ -34,19 +45,13 @@ type Handler interface {
 	//
 	// GET /v1/robots/{robotId}/faults
 	ListRobotFaults(ctx context.Context, params ListRobotFaultsParams) (ListRobotFaultsRes, error)
-	// ListRobotTelemetry implements listRobotTelemetry operation.
+	// ListRobotMeasurements implements listRobotMeasurements operation.
 	//
-	// Returns readings from a time range of at most 24 hours, on any date. Without `from` and `to`, that
-	// is the last 24 hours.
+	// Returns measurements from a time range of at most 24 hours, on any date. Without `from` and `to`,
+	// that is the last 24 hours.
 	//
-	// GET /v1/robots/{robotId}/telemetry
-	ListRobotTelemetry(ctx context.Context, params ListRobotTelemetryParams) (ListRobotTelemetryRes, error)
-	// ListRobots implements listRobots operation.
-	//
-	// List robots with their current state.
-	//
-	// GET /v1/robots
-	ListRobots(ctx context.Context, params ListRobotsParams) (ListRobotsRes, error)
+	// GET /v1/robots/{robotId}/measurements
+	ListRobotMeasurements(ctx context.Context, params ListRobotMeasurementsParams) (ListRobotMeasurementsRes, error)
 	// NewError creates *ErrorStatusCode from error returned by handler.
 	//
 	// Used for common default response.

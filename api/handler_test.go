@@ -2,7 +2,10 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"testing"
+
+	"github.com/google/uuid"
 
 	fleetv1 "github.com/umartahir93/olivaw-assignment/gen/fleet/v1"
 )
@@ -10,40 +13,38 @@ import (
 func TestHandlersReturnSuccess(t *testing.T) {
 	h := NewHandler()
 	ctx := context.Background()
+	id := uuid.New()
 
-	if res, err := h.ListRobots(ctx, fleetv1.ListRobotsParams{}); err != nil {
-		t.Errorf("ListRobots: %v", err)
-	} else if _, ok := res.(*fleetv1.RobotPage); !ok {
-		t.Errorf("ListRobots returned %T, want *RobotPage", res)
+	tests := []struct {
+		name string
+		call func() (any, error)
+		want any
+	}{
+		{"create gateway", func() (any, error) {
+			return h.CreateGateway(ctx, &fleetv1.GatewayCreate{SerialNumber: "GW-1", Location: "HQ"})
+		}, &fleetv1.GatewayHeaders{}},
+		{"list gateways", func() (any, error) { return h.ListGateways(ctx, fleetv1.ListGatewaysParams{}) }, &fleetv1.GatewayPage{}},
+		{"get gateway", func() (any, error) { return h.GetGateway(ctx, fleetv1.GetGatewayParams{GatewayId: id}) }, &fleetv1.Gateway{}},
+		{"list gateway robots", func() (any, error) {
+			return h.ListGatewayRobots(ctx, fleetv1.ListGatewayRobotsParams{GatewayId: id})
+		}, &fleetv1.RobotPage{}},
+		{"get robot", func() (any, error) { return h.GetRobot(ctx, fleetv1.GetRobotParams{RobotId: id}) }, &fleetv1.Robot{}},
+		{"list measurements", func() (any, error) {
+			return h.ListRobotMeasurements(ctx, fleetv1.ListRobotMeasurementsParams{RobotId: id})
+		}, &fleetv1.MeasurementPage{}},
+		{"list faults", func() (any, error) {
+			return h.ListRobotFaults(ctx, fleetv1.ListRobotFaultsParams{RobotId: id})
+		}, &fleetv1.FaultPage{}},
 	}
-
-	if res, err := h.CreateRobot(ctx, &fleetv1.RobotCreate{SerialNumber: "SN-1", Location: "HQ"}); err != nil {
-		t.Errorf("CreateRobot: %v", err)
-	} else if _, ok := res.(*fleetv1.RobotHeaders); !ok {
-		t.Errorf("CreateRobot returned %T, want *RobotHeaders", res)
-	}
-
-	if res, err := h.GetRobot(ctx, fleetv1.GetRobotParams{}); err != nil {
-		t.Errorf("GetRobot: %v", err)
-	} else if _, ok := res.(*fleetv1.Robot); !ok {
-		t.Errorf("GetRobot returned %T, want *Robot", res)
-	}
-
-	if res, err := h.DecommissionRobot(ctx, fleetv1.DecommissionRobotParams{}); err != nil {
-		t.Errorf("DecommissionRobot: %v", err)
-	} else if _, ok := res.(*fleetv1.DecommissionRobotNoContent); !ok {
-		t.Errorf("DecommissionRobot returned %T, want *DecommissionRobotNoContent", res)
-	}
-
-	if res, err := h.ListRobotTelemetry(ctx, fleetv1.ListRobotTelemetryParams{}); err != nil {
-		t.Errorf("ListRobotTelemetry: %v", err)
-	} else if _, ok := res.(*fleetv1.TelemetryPage); !ok {
-		t.Errorf("ListRobotTelemetry returned %T, want *TelemetryPage", res)
-	}
-
-	if res, err := h.ListRobotFaults(ctx, fleetv1.ListRobotFaultsParams{}); err != nil {
-		t.Errorf("ListRobotFaults: %v", err)
-	} else if _, ok := res.(*fleetv1.FaultPage); !ok {
-		t.Errorf("ListRobotFaults returned %T, want *FaultPage", res)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := tt.call()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got, want := fmt.Sprintf("%T", res), fmt.Sprintf("%T", tt.want); got != want {
+				t.Fatalf("returned %s, want %s", got, want)
+			}
+		})
 	}
 }

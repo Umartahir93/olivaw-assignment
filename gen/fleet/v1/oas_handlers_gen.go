@@ -28,12 +28,12 @@ func (c *codeRecorder) Unwrap() http.ResponseWriter {
 
 func recordError(string, error) {}
 
-// handleCreateRobotRequest handles createRobot operation.
+// handleCreateGatewayRequest handles createGateway operation.
 //
-// Onboard a robot.
+// Register a gateway.
 //
-// POST /v1/robots
-func (s *Server) handleCreateRobotRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// POST /v1/gateways
+func (s *Server) handleCreateGatewayRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	ctx := r.Context()
@@ -41,13 +41,13 @@ func (s *Server) handleCreateRobotRequest(args [0]string, argsEscaped bool, w ht
 	var (
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: CreateRobotOperation,
-			ID:   "createRobot",
+			Name: CreateGatewayOperation,
+			ID:   "createGateway",
 		}
 	)
 
 	var rawBody []byte
-	request, rawBody, close, err := s.decodeCreateRobotRequest(r)
+	request, rawBody, close, err := s.decodeCreateGatewayRequest(r)
 	if err != nil {
 		err = &ogenerrors.DecodeRequestError{
 			OperationContext: opErrContext,
@@ -63,13 +63,13 @@ func (s *Server) handleCreateRobotRequest(args [0]string, argsEscaped bool, w ht
 		}
 	}()
 
-	var response CreateRobotRes
+	var response CreateGatewayRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    CreateRobotOperation,
-			OperationSummary: "Onboard a robot",
-			OperationID:      "createRobot",
+			OperationName:    CreateGatewayOperation,
+			OperationSummary: "Register a gateway",
+			OperationID:      "createGateway",
 			Body:             request,
 			RawBody:          rawBody,
 			Params:           middleware.Parameters{},
@@ -77,9 +77,9 @@ func (s *Server) handleCreateRobotRequest(args [0]string, argsEscaped bool, w ht
 		}
 
 		type (
-			Request  = *RobotCreate
+			Request  = *GatewayCreate
 			Params   = struct{}
-			Response = CreateRobotRes
+			Response = CreateGatewayRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -90,12 +90,12 @@ func (s *Server) handleCreateRobotRequest(args [0]string, argsEscaped bool, w ht
 			mreq,
 			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.CreateRobot(ctx, request)
+				response, err = s.h.CreateGateway(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.CreateRobot(ctx, request)
+		response, err = s.h.CreateGateway(ctx, request)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -114,7 +114,7 @@ func (s *Server) handleCreateRobotRequest(args [0]string, argsEscaped bool, w ht
 		return
 	}
 
-	if err := encodeCreateRobotResponse(response, w); err != nil {
+	if err := encodeCreateGatewayResponse(response, w); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -123,13 +123,12 @@ func (s *Server) handleCreateRobotRequest(args [0]string, argsEscaped bool, w ht
 	}
 }
 
-// handleDecommissionRobotRequest handles decommissionRobot operation.
+// handleGetGatewayRequest handles getGateway operation.
 //
-// The robot stays available with status `decommissioned` and no longer reports new telemetry.
-// Repeating the call also succeeds.
+// Get a gateway.
 //
-// DELETE /v1/robots/{robotId}
-func (s *Server) handleDecommissionRobotRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /v1/gateways/{gatewayId}
+func (s *Server) handleGetGatewayRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	ctx := r.Context()
@@ -137,11 +136,11 @@ func (s *Server) handleDecommissionRobotRequest(args [1]string, argsEscaped bool
 	var (
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: DecommissionRobotOperation,
-			ID:   "decommissionRobot",
+			Name: GetGatewayOperation,
+			ID:   "getGateway",
 		}
 	)
-	params, err := decodeDecommissionRobotParams(args, argsEscaped, r)
+	params, err := decodeGetGatewayParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -154,28 +153,28 @@ func (s *Server) handleDecommissionRobotRequest(args [1]string, argsEscaped bool
 
 	var rawBody []byte
 
-	var response DecommissionRobotRes
+	var response GetGatewayRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    DecommissionRobotOperation,
-			OperationSummary: "Decommission a robot",
-			OperationID:      "decommissionRobot",
+			OperationName:    GetGatewayOperation,
+			OperationSummary: "Get a gateway",
+			OperationID:      "getGateway",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "robotId",
+					Name: "gatewayId",
 					In:   "path",
-				}: params.RobotId,
+				}: params.GatewayId,
 			},
 			Raw: r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = DecommissionRobotParams
-			Response = DecommissionRobotRes
+			Params   = GetGatewayParams
+			Response = GetGatewayRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -184,14 +183,14 @@ func (s *Server) handleDecommissionRobotRequest(args [1]string, argsEscaped bool
 		](
 			m,
 			mreq,
-			unpackDecommissionRobotParams,
+			unpackGetGatewayParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.DecommissionRobot(ctx, params)
+				response, err = s.h.GetGateway(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.DecommissionRobot(ctx, params)
+		response, err = s.h.GetGateway(ctx, params)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -210,7 +209,7 @@ func (s *Server) handleDecommissionRobotRequest(args [1]string, argsEscaped bool
 		return
 	}
 
-	if err := encodeDecommissionRobotResponse(response, w); err != nil {
+	if err := encodeGetGatewayResponse(response, w); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -221,7 +220,7 @@ func (s *Server) handleDecommissionRobotRequest(args [1]string, argsEscaped bool
 
 // handleGetRobotRequest handles getRobot operation.
 //
-// Get a robot with its current state.
+// Get a robot and its current state.
 //
 // GET /v1/robots/{robotId}
 func (s *Server) handleGetRobotRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -254,7 +253,7 @@ func (s *Server) handleGetRobotRequest(args [1]string, argsEscaped bool, w http.
 		mreq := middleware.Request{
 			Context:          ctx,
 			OperationName:    GetRobotOperation,
-			OperationSummary: "Get a robot with its current state",
+			OperationSummary: "Get a robot and its current state",
 			OperationID:      "getRobot",
 			Body:             nil,
 			RawBody:          rawBody,
@@ -306,6 +305,208 @@ func (s *Server) handleGetRobotRequest(args [1]string, argsEscaped bool, w http.
 	}
 
 	if err := encodeGetRobotResponse(response, w); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleListGatewayRobotsRequest handles listGatewayRobots operation.
+//
+// List a gateway's robots and their current state.
+//
+// GET /v1/gateways/{gatewayId}/robots
+func (s *Server) handleListGatewayRobotsRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	ctx := r.Context()
+
+	var (
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: ListGatewayRobotsOperation,
+			ID:   "listGatewayRobots",
+		}
+	)
+	params, err := decodeListGatewayRobotsParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+
+	var response ListGatewayRobotsRes
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    ListGatewayRobotsOperation,
+			OperationSummary: "List a gateway's robots and their current state",
+			OperationID:      "listGatewayRobots",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "offset",
+					In:   "query",
+				}: params.Offset,
+				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
+				{
+					Name: "gatewayId",
+					In:   "path",
+				}: params.GatewayId,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = ListGatewayRobotsParams
+			Response = ListGatewayRobotsRes
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackListGatewayRobotsParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.ListGatewayRobots(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.ListGatewayRobots(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeListGatewayRobotsResponse(response, w); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleListGatewaysRequest handles listGateways operation.
+//
+// List gateways.
+//
+// GET /v1/gateways
+func (s *Server) handleListGatewaysRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	ctx := r.Context()
+
+	var (
+		err          error
+		opErrContext = ogenerrors.OperationContext{
+			Name: ListGatewaysOperation,
+			ID:   "listGateways",
+		}
+	)
+	params, err := decodeListGatewaysParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	var rawBody []byte
+
+	var response ListGatewaysRes
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    ListGatewaysOperation,
+			OperationSummary: "List gateways",
+			OperationID:      "listGateways",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params: middleware.Parameters{
+				{
+					Name: "offset",
+					In:   "query",
+				}: params.Offset,
+				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
+			},
+			Raw: r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = ListGatewaysParams
+			Response = ListGatewaysRes
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			unpackListGatewaysParams,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.ListGateways(ctx, params)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.ListGateways(ctx, params)
+	}
+	if err != nil {
+		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
+			if err := encodeErrorResponse(errRes, w); err != nil {
+				defer recordError("Internal", err)
+			}
+			return
+		}
+		if errors.Is(err, ht.ErrNotImplemented) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+			return
+		}
+		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
+			defer recordError("Internal", err)
+		}
+		return
+	}
+
+	if err := encodeListGatewaysResponse(response, w); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -426,13 +627,13 @@ func (s *Server) handleListRobotFaultsRequest(args [1]string, argsEscaped bool, 
 	}
 }
 
-// handleListRobotTelemetryRequest handles listRobotTelemetry operation.
+// handleListRobotMeasurementsRequest handles listRobotMeasurements operation.
 //
-// Returns readings from a time range of at most 24 hours, on any date. Without `from` and `to`, that
-// is the last 24 hours.
+// Returns measurements from a time range of at most 24 hours, on any date. Without `from` and `to`,
+// that is the last 24 hours.
 //
-// GET /v1/robots/{robotId}/telemetry
-func (s *Server) handleListRobotTelemetryRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /v1/robots/{robotId}/measurements
+func (s *Server) handleListRobotMeasurementsRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	ctx := r.Context()
@@ -440,11 +641,11 @@ func (s *Server) handleListRobotTelemetryRequest(args [1]string, argsEscaped boo
 	var (
 		err          error
 		opErrContext = ogenerrors.OperationContext{
-			Name: ListRobotTelemetryOperation,
-			ID:   "listRobotTelemetry",
+			Name: ListRobotMeasurementsOperation,
+			ID:   "listRobotMeasurements",
 		}
 	)
-	params, err := decodeListRobotTelemetryParams(args, argsEscaped, r)
+	params, err := decodeListRobotMeasurementsParams(args, argsEscaped, r)
 	if err != nil {
 		err = &ogenerrors.DecodeParamsError{
 			OperationContext: opErrContext,
@@ -457,13 +658,13 @@ func (s *Server) handleListRobotTelemetryRequest(args [1]string, argsEscaped boo
 
 	var rawBody []byte
 
-	var response ListRobotTelemetryRes
+	var response ListRobotMeasurementsRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
-			OperationName:    ListRobotTelemetryOperation,
-			OperationSummary: "List a robot's readings",
-			OperationID:      "listRobotTelemetry",
+			OperationName:    ListRobotMeasurementsOperation,
+			OperationSummary: "List a robot's measurements",
+			OperationID:      "listRobotMeasurements",
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
@@ -493,8 +694,8 @@ func (s *Server) handleListRobotTelemetryRequest(args [1]string, argsEscaped boo
 
 		type (
 			Request  = struct{}
-			Params   = ListRobotTelemetryParams
-			Response = ListRobotTelemetryRes
+			Params   = ListRobotMeasurementsParams
+			Response = ListRobotMeasurementsRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -503,14 +704,14 @@ func (s *Server) handleListRobotTelemetryRequest(args [1]string, argsEscaped boo
 		](
 			m,
 			mreq,
-			unpackListRobotTelemetryParams,
+			unpackListRobotMeasurementsParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.ListRobotTelemetry(ctx, params)
+				response, err = s.h.ListRobotMeasurements(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.ListRobotTelemetry(ctx, params)
+		response, err = s.h.ListRobotMeasurements(ctx, params)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -529,114 +730,7 @@ func (s *Server) handleListRobotTelemetryRequest(args [1]string, argsEscaped boo
 		return
 	}
 
-	if err := encodeListRobotTelemetryResponse(response, w); err != nil {
-		defer recordError("EncodeResponse", err)
-		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-		}
-		return
-	}
-}
-
-// handleListRobotsRequest handles listRobots operation.
-//
-// List robots with their current state.
-//
-// GET /v1/robots
-func (s *Server) handleListRobotsRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
-	statusWriter := &codeRecorder{ResponseWriter: w}
-	w = statusWriter
-	ctx := r.Context()
-
-	var (
-		err          error
-		opErrContext = ogenerrors.OperationContext{
-			Name: ListRobotsOperation,
-			ID:   "listRobots",
-		}
-	)
-	params, err := decodeListRobotsParams(args, argsEscaped, r)
-	if err != nil {
-		err = &ogenerrors.DecodeParamsError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeParams", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
-
-	var rawBody []byte
-
-	var response ListRobotsRes
-	if m := s.cfg.Middleware; m != nil {
-		mreq := middleware.Request{
-			Context:          ctx,
-			OperationName:    ListRobotsOperation,
-			OperationSummary: "List robots with their current state",
-			OperationID:      "listRobots",
-			Body:             nil,
-			RawBody:          rawBody,
-			Params: middleware.Parameters{
-				{
-					Name: "connectivity",
-					In:   "query",
-				}: params.Connectivity,
-				{
-					Name: "status",
-					In:   "query",
-				}: params.Status,
-				{
-					Name: "offset",
-					In:   "query",
-				}: params.Offset,
-				{
-					Name: "limit",
-					In:   "query",
-				}: params.Limit,
-			},
-			Raw: r,
-		}
-
-		type (
-			Request  = struct{}
-			Params   = ListRobotsParams
-			Response = ListRobotsRes
-		)
-		response, err = middleware.HookMiddleware[
-			Request,
-			Params,
-			Response,
-		](
-			m,
-			mreq,
-			unpackListRobotsParams,
-			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.ListRobots(ctx, params)
-				return response, err
-			},
-		)
-	} else {
-		response, err = s.h.ListRobots(ctx, params)
-	}
-	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w); err != nil {
-			defer recordError("Internal", err)
-		}
-		return
-	}
-
-	if err := encodeListRobotsResponse(response, w); err != nil {
+	if err := encodeListRobotMeasurementsResponse(response, w); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)

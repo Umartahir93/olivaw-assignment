@@ -79,24 +79,22 @@ func (s *Activity) UnmarshalText(data []byte) error {
 	}
 }
 
-// Never_seen: no data yet. online: sending data. stale: missed a few updates. offline: no data for a
-// while; decommissioned robots end up offline.
+// Unknown: no contact yet. online: something arrived in the last 5 minutes. offline: nothing arrived
+// for longer.
 // Ref: #/components/schemas/Connectivity
 type Connectivity string
 
 const (
-	ConnectivityNeverSeen Connectivity = "never_seen"
-	ConnectivityOnline    Connectivity = "online"
-	ConnectivityStale     Connectivity = "stale"
-	ConnectivityOffline   Connectivity = "offline"
+	ConnectivityUnknown Connectivity = "unknown"
+	ConnectivityOnline  Connectivity = "online"
+	ConnectivityOffline Connectivity = "offline"
 )
 
 // AllValues returns all Connectivity values.
 func (Connectivity) AllValues() []Connectivity {
 	return []Connectivity{
-		ConnectivityNeverSeen,
+		ConnectivityUnknown,
 		ConnectivityOnline,
-		ConnectivityStale,
 		ConnectivityOffline,
 	}
 }
@@ -104,11 +102,9 @@ func (Connectivity) AllValues() []Connectivity {
 // MarshalText implements encoding.TextMarshaler.
 func (s Connectivity) MarshalText() ([]byte, error) {
 	switch s {
-	case ConnectivityNeverSeen:
+	case ConnectivityUnknown:
 		return []byte(s), nil
 	case ConnectivityOnline:
-		return []byte(s), nil
-	case ConnectivityStale:
 		return []byte(s), nil
 	case ConnectivityOffline:
 		return []byte(s), nil
@@ -120,14 +116,11 @@ func (s Connectivity) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *Connectivity) UnmarshalText(data []byte) error {
 	switch Connectivity(data) {
-	case ConnectivityNeverSeen:
-		*s = ConnectivityNeverSeen
+	case ConnectivityUnknown:
+		*s = ConnectivityUnknown
 		return nil
 	case ConnectivityOnline:
 		*s = ConnectivityOnline
-		return nil
-	case ConnectivityStale:
-		*s = ConnectivityStale
 		return nil
 	case ConnectivityOffline:
 		*s = ConnectivityOffline
@@ -137,26 +130,13 @@ func (s *Connectivity) UnmarshalText(data []byte) error {
 	}
 }
 
-type CreateRobotBadRequest Problem
+type CreateGatewayBadRequest Problem
 
-func (*CreateRobotBadRequest) createRobotRes() {}
+func (*CreateGatewayBadRequest) createGatewayRes() {}
 
-type CreateRobotConflict Problem
+type CreateGatewayConflict Problem
 
-func (*CreateRobotConflict) createRobotRes() {}
-
-type DecommissionRobotBadRequest Problem
-
-func (*DecommissionRobotBadRequest) decommissionRobotRes() {}
-
-// DecommissionRobotNoContent is response for DecommissionRobot operation.
-type DecommissionRobotNoContent struct{}
-
-func (*DecommissionRobotNoContent) decommissionRobotRes() {}
-
-type DecommissionRobotNotFound Problem
-
-func (*DecommissionRobotNotFound) decommissionRobotRes() {}
+func (*CreateGatewayConflict) createGatewayRes() {}
 
 // ErrorStatusCode wraps Problem with StatusCode.
 type ErrorStatusCode struct {
@@ -185,7 +165,7 @@ func (s *ErrorStatusCode) SetResponse(val Problem) {
 }
 
 // One occurrence of a fault. While the fault is active, its code is listed in the robot's
-// activeFaultCodes.
+// measurements.
 // Ref: #/components/schemas/Fault
 type Fault struct {
 	// E.g. "LIDAR_TIMEOUT".
@@ -317,6 +297,200 @@ func (s *FaultSeverity) UnmarshalText(data []byte) error {
 	}
 }
 
+// A gateway and whether the system hears from it.
+// Ref: #/components/schemas/Gateway
+type Gateway struct {
+	// Assigned at registration; never changes.
+	GatewayId uuid.UUID `json:"gatewayId"`
+	// Business key, from the gateway's manufacturer.
+	SerialNumber string `json:"serialNumber"`
+	// Where the gateway is installed, e.g. "Munich HQ".
+	Location string `json:"location"`
+	// Optional display name.
+	Name         OptString    `json:"name"`
+	RegisteredAt time.Time    `json:"registeredAt"`
+	Connectivity Connectivity `json:"connectivity"`
+	// When the gateway last called the system; null if never.
+	LastSeenAt OptNilDateTime `json:"lastSeenAt"`
+}
+
+// GetGatewayId returns the value of GatewayId.
+func (s *Gateway) GetGatewayId() uuid.UUID {
+	return s.GatewayId
+}
+
+// GetSerialNumber returns the value of SerialNumber.
+func (s *Gateway) GetSerialNumber() string {
+	return s.SerialNumber
+}
+
+// GetLocation returns the value of Location.
+func (s *Gateway) GetLocation() string {
+	return s.Location
+}
+
+// GetName returns the value of Name.
+func (s *Gateway) GetName() OptString {
+	return s.Name
+}
+
+// GetRegisteredAt returns the value of RegisteredAt.
+func (s *Gateway) GetRegisteredAt() time.Time {
+	return s.RegisteredAt
+}
+
+// GetConnectivity returns the value of Connectivity.
+func (s *Gateway) GetConnectivity() Connectivity {
+	return s.Connectivity
+}
+
+// GetLastSeenAt returns the value of LastSeenAt.
+func (s *Gateway) GetLastSeenAt() OptNilDateTime {
+	return s.LastSeenAt
+}
+
+// SetGatewayId sets the value of GatewayId.
+func (s *Gateway) SetGatewayId(val uuid.UUID) {
+	s.GatewayId = val
+}
+
+// SetSerialNumber sets the value of SerialNumber.
+func (s *Gateway) SetSerialNumber(val string) {
+	s.SerialNumber = val
+}
+
+// SetLocation sets the value of Location.
+func (s *Gateway) SetLocation(val string) {
+	s.Location = val
+}
+
+// SetName sets the value of Name.
+func (s *Gateway) SetName(val OptString) {
+	s.Name = val
+}
+
+// SetRegisteredAt sets the value of RegisteredAt.
+func (s *Gateway) SetRegisteredAt(val time.Time) {
+	s.RegisteredAt = val
+}
+
+// SetConnectivity sets the value of Connectivity.
+func (s *Gateway) SetConnectivity(val Connectivity) {
+	s.Connectivity = val
+}
+
+// SetLastSeenAt sets the value of LastSeenAt.
+func (s *Gateway) SetLastSeenAt(val OptNilDateTime) {
+	s.LastSeenAt = val
+}
+
+func (*Gateway) getGatewayRes() {}
+
+// Ref: #/components/schemas/GatewayCreate
+type GatewayCreate struct {
+	// Unique across the fleet.
+	SerialNumber string `json:"serialNumber"`
+	// Where the gateway is installed, e.g. "Munich HQ".
+	Location string `json:"location"`
+	// Optional display name.
+	Name OptString `json:"name"`
+}
+
+// GetSerialNumber returns the value of SerialNumber.
+func (s *GatewayCreate) GetSerialNumber() string {
+	return s.SerialNumber
+}
+
+// GetLocation returns the value of Location.
+func (s *GatewayCreate) GetLocation() string {
+	return s.Location
+}
+
+// GetName returns the value of Name.
+func (s *GatewayCreate) GetName() OptString {
+	return s.Name
+}
+
+// SetSerialNumber sets the value of SerialNumber.
+func (s *GatewayCreate) SetSerialNumber(val string) {
+	s.SerialNumber = val
+}
+
+// SetLocation sets the value of Location.
+func (s *GatewayCreate) SetLocation(val string) {
+	s.Location = val
+}
+
+// SetName sets the value of Name.
+func (s *GatewayCreate) SetName(val OptString) {
+	s.Name = val
+}
+
+// GatewayHeaders wraps Gateway with response headers.
+type GatewayHeaders struct {
+	Location OptURI
+	Response Gateway
+}
+
+// GetLocation returns the value of Location.
+func (s *GatewayHeaders) GetLocation() OptURI {
+	return s.Location
+}
+
+// GetResponse returns the value of Response.
+func (s *GatewayHeaders) GetResponse() Gateway {
+	return s.Response
+}
+
+// SetLocation sets the value of Location.
+func (s *GatewayHeaders) SetLocation(val OptURI) {
+	s.Location = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GatewayHeaders) SetResponse(val Gateway) {
+	s.Response = val
+}
+
+func (*GatewayHeaders) createGatewayRes() {}
+
+// Ref: #/components/schemas/GatewayPage
+type GatewayPage struct {
+	Items []Gateway `json:"items"`
+	// True if more items follow this page.
+	HasMore bool `json:"hasMore"`
+}
+
+// GetItems returns the value of Items.
+func (s *GatewayPage) GetItems() []Gateway {
+	return s.Items
+}
+
+// GetHasMore returns the value of HasMore.
+func (s *GatewayPage) GetHasMore() bool {
+	return s.HasMore
+}
+
+// SetItems sets the value of Items.
+func (s *GatewayPage) SetItems(val []Gateway) {
+	s.Items = val
+}
+
+// SetHasMore sets the value of HasMore.
+func (s *GatewayPage) SetHasMore(val bool) {
+	s.HasMore = val
+}
+
+func (*GatewayPage) listGatewaysRes() {}
+
+type GetGatewayBadRequest Problem
+
+func (*GetGatewayBadRequest) getGatewayRes() {}
+
+type GetGatewayNotFound Problem
+
+func (*GetGatewayNotFound) getGatewayRes() {}
+
 type GetRobotBadRequest Problem
 
 func (*GetRobotBadRequest) getRobotRes() {}
@@ -324,6 +498,14 @@ func (*GetRobotBadRequest) getRobotRes() {}
 type GetRobotNotFound Problem
 
 func (*GetRobotNotFound) getRobotRes() {}
+
+type ListGatewayRobotsBadRequest Problem
+
+func (*ListGatewayRobotsBadRequest) listGatewayRobotsRes() {}
+
+type ListGatewayRobotsNotFound Problem
+
+func (*ListGatewayRobotsNotFound) listGatewayRobotsRes() {}
 
 type ListRobotFaultsBadRequest Problem
 
@@ -333,59 +515,106 @@ type ListRobotFaultsNotFound Problem
 
 func (*ListRobotFaultsNotFound) listRobotFaultsRes() {}
 
-type ListRobotTelemetryBadRequest Problem
+type ListRobotMeasurementsBadRequest Problem
 
-func (*ListRobotTelemetryBadRequest) listRobotTelemetryRes() {}
+func (*ListRobotMeasurementsBadRequest) listRobotMeasurementsRes() {}
 
-type ListRobotTelemetryNotFound Problem
+type ListRobotMeasurementsNotFound Problem
 
-func (*ListRobotTelemetryNotFound) listRobotTelemetryRes() {}
+func (*ListRobotMeasurementsNotFound) listRobotMeasurementsRes() {}
 
-// NewOptConnectivity returns new OptConnectivity with value set to v.
-func NewOptConnectivity(v Connectivity) OptConnectivity {
-	return OptConnectivity{
-		Value: v,
-		Set:   true,
-	}
+// A snapshot of one robot's state at one moment.
+// Ref: #/components/schemas/Measurement
+type Measurement struct {
+	// Null if not reported.
+	BatteryPct OptNilFloat64 `json:"batteryPct"`
+	// Null if not reported.
+	Position OptNilPosition `json:"position"`
+	Activity Activity       `json:"activity"`
+	// Codes of the faults active at this moment; empty when all is well.
+	ActiveFaultCodes []string `json:"activeFaultCodes"`
+	// When the measurement was taken.
+	MeasuredAt time.Time `json:"measuredAt"`
 }
 
-// OptConnectivity is optional Connectivity.
-type OptConnectivity struct {
-	Value Connectivity
-	Set   bool
+// GetBatteryPct returns the value of BatteryPct.
+func (s *Measurement) GetBatteryPct() OptNilFloat64 {
+	return s.BatteryPct
 }
 
-// IsSet returns true if OptConnectivity was set.
-func (o OptConnectivity) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptConnectivity) Reset() {
-	var v Connectivity
-	o.Value = v
-	o.Set = false
+// GetPosition returns the value of Position.
+func (s *Measurement) GetPosition() OptNilPosition {
+	return s.Position
 }
 
-// SetTo sets value to v.
-func (o *OptConnectivity) SetTo(v Connectivity) {
-	o.Set = true
-	o.Value = v
+// GetActivity returns the value of Activity.
+func (s *Measurement) GetActivity() Activity {
+	return s.Activity
 }
 
-// Get returns value and boolean that denotes whether value was set.
-func (o OptConnectivity) Get() (v Connectivity, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
+// GetActiveFaultCodes returns the value of ActiveFaultCodes.
+func (s *Measurement) GetActiveFaultCodes() []string {
+	return s.ActiveFaultCodes
 }
 
-// Or returns value if set, or given parameter if does not.
-func (o OptConnectivity) Or(d Connectivity) Connectivity {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
+// GetMeasuredAt returns the value of MeasuredAt.
+func (s *Measurement) GetMeasuredAt() time.Time {
+	return s.MeasuredAt
 }
+
+// SetBatteryPct sets the value of BatteryPct.
+func (s *Measurement) SetBatteryPct(val OptNilFloat64) {
+	s.BatteryPct = val
+}
+
+// SetPosition sets the value of Position.
+func (s *Measurement) SetPosition(val OptNilPosition) {
+	s.Position = val
+}
+
+// SetActivity sets the value of Activity.
+func (s *Measurement) SetActivity(val Activity) {
+	s.Activity = val
+}
+
+// SetActiveFaultCodes sets the value of ActiveFaultCodes.
+func (s *Measurement) SetActiveFaultCodes(val []string) {
+	s.ActiveFaultCodes = val
+}
+
+// SetMeasuredAt sets the value of MeasuredAt.
+func (s *Measurement) SetMeasuredAt(val time.Time) {
+	s.MeasuredAt = val
+}
+
+// Ref: #/components/schemas/MeasurementPage
+type MeasurementPage struct {
+	Items []Measurement `json:"items"`
+	// True if more items follow this page.
+	HasMore bool `json:"hasMore"`
+}
+
+// GetItems returns the value of Items.
+func (s *MeasurementPage) GetItems() []Measurement {
+	return s.Items
+}
+
+// GetHasMore returns the value of HasMore.
+func (s *MeasurementPage) GetHasMore() bool {
+	return s.HasMore
+}
+
+// SetItems sets the value of Items.
+func (s *MeasurementPage) SetItems(val []Measurement) {
+	s.Items = val
+}
+
+// SetHasMore sets the value of HasMore.
+func (s *MeasurementPage) SetHasMore(val bool) {
+	s.HasMore = val
+}
+
+func (*MeasurementPage) listRobotMeasurementsRes() {}
 
 // NewOptDateTime returns new OptDateTime with value set to v.
 func NewOptDateTime(v time.Time) OptDateTime {
@@ -615,6 +844,74 @@ func (o OptNilFloat64) Or(d float64) float64 {
 	return d
 }
 
+// NewOptNilMeasurement returns new OptNilMeasurement with value set to v.
+func NewOptNilMeasurement(v Measurement) OptNilMeasurement {
+	return OptNilMeasurement{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilMeasurement is optional nullable Measurement.
+type OptNilMeasurement struct {
+	Value Measurement
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilMeasurement was set.
+func (o OptNilMeasurement) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilMeasurement) Reset() {
+	var v Measurement
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilMeasurement) SetTo(v Measurement) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilMeasurement) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilMeasurement) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v Measurement
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilMeasurement) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilMeasurement) Get() (v Measurement, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilMeasurement) Or(d Measurement) Measurement {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilPosition returns new OptNilPosition with value set to v.
 func NewOptNilPosition(v Position) OptNilPosition {
 	return OptNilPosition{
@@ -677,120 +974,6 @@ func (o OptNilPosition) Get() (v Position, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilPosition) Or(d Position) Position {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptNilTelemetryReading returns new OptNilTelemetryReading with value set to v.
-func NewOptNilTelemetryReading(v TelemetryReading) OptNilTelemetryReading {
-	return OptNilTelemetryReading{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptNilTelemetryReading is optional nullable TelemetryReading.
-type OptNilTelemetryReading struct {
-	Value TelemetryReading
-	Set   bool
-	Null  bool
-}
-
-// IsSet returns true if OptNilTelemetryReading was set.
-func (o OptNilTelemetryReading) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptNilTelemetryReading) Reset() {
-	var v TelemetryReading
-	o.Value = v
-	o.Set = false
-	o.Null = false
-}
-
-// SetTo sets value to v.
-func (o *OptNilTelemetryReading) SetTo(v TelemetryReading) {
-	o.Set = true
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o OptNilTelemetryReading) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *OptNilTelemetryReading) SetToNull() {
-	o.Set = true
-	o.Null = true
-	var v TelemetryReading
-	o.Value = v
-}
-
-// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
-func (o OptNilTelemetryReading) IsEmpty() bool {
-	return !o.Set && !o.Null
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptNilTelemetryReading) Get() (v TelemetryReading, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptNilTelemetryReading) Or(d TelemetryReading) TelemetryReading {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptRobotStatus returns new OptRobotStatus with value set to v.
-func NewOptRobotStatus(v RobotStatus) OptRobotStatus {
-	return OptRobotStatus{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptRobotStatus is optional RobotStatus.
-type OptRobotStatus struct {
-	Value RobotStatus
-	Set   bool
-}
-
-// IsSet returns true if OptRobotStatus was set.
-func (o OptRobotStatus) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptRobotStatus) Reset() {
-	var v RobotStatus
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptRobotStatus) SetTo(v RobotStatus) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptRobotStatus) Get() (v RobotStatus, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptRobotStatus) Or(d RobotStatus) RobotStatus {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1005,25 +1188,24 @@ func (s *Problem) SetInstance(val OptString) {
 	s.Instance = val
 }
 
-func (*Problem) listRobotsRes() {}
+func (*Problem) listGatewaysRes() {}
 
 // A robot and its current state.
 // Ref: #/components/schemas/Robot
 type Robot struct {
-	// Assigned at onboarding.
-	RobotId      uuid.UUID `json:"robotId"`
-	SerialNumber string    `json:"serialNumber"`
-	// Where the robot is deployed, e.g. "Munich HQ, floor 2".
-	Location     string      `json:"location"`
-	Status       RobotStatus `json:"status"`
-	RegisteredAt time.Time   `json:"registeredAt"`
-	// Null while the robot is active.
-	DecommissionedAt OptNilDateTime `json:"decommissionedAt"`
-	Connectivity     Connectivity   `json:"connectivity"`
-	// When data last arrived; null if never.
+	// Assigned when the robot is first scanned; never changes.
+	RobotId uuid.UUID `json:"robotId"`
+	// Business key, from the robot's manufacturer.
+	SerialNumber string `json:"serialNumber"`
+	// The gateway the robot is connected to.
+	GatewayId uuid.UUID `json:"gatewayId"`
+	// When a scan first reported the robot.
+	FirstSeenAt  time.Time    `json:"firstSeenAt"`
+	Connectivity Connectivity `json:"connectivity"`
+	// When the robot's last measurement arrived; null if never.
 	LastSeenAt OptNilDateTime `json:"lastSeenAt"`
-	// The newest reading; null if none yet.
-	Latest OptNilTelemetryReading `json:"latest"`
+	// The newest measurement; null if none yet.
+	Latest OptNilMeasurement `json:"latest"`
 }
 
 // GetRobotId returns the value of RobotId.
@@ -1036,24 +1218,14 @@ func (s *Robot) GetSerialNumber() string {
 	return s.SerialNumber
 }
 
-// GetLocation returns the value of Location.
-func (s *Robot) GetLocation() string {
-	return s.Location
+// GetGatewayId returns the value of GatewayId.
+func (s *Robot) GetGatewayId() uuid.UUID {
+	return s.GatewayId
 }
 
-// GetStatus returns the value of Status.
-func (s *Robot) GetStatus() RobotStatus {
-	return s.Status
-}
-
-// GetRegisteredAt returns the value of RegisteredAt.
-func (s *Robot) GetRegisteredAt() time.Time {
-	return s.RegisteredAt
-}
-
-// GetDecommissionedAt returns the value of DecommissionedAt.
-func (s *Robot) GetDecommissionedAt() OptNilDateTime {
-	return s.DecommissionedAt
+// GetFirstSeenAt returns the value of FirstSeenAt.
+func (s *Robot) GetFirstSeenAt() time.Time {
+	return s.FirstSeenAt
 }
 
 // GetConnectivity returns the value of Connectivity.
@@ -1067,7 +1239,7 @@ func (s *Robot) GetLastSeenAt() OptNilDateTime {
 }
 
 // GetLatest returns the value of Latest.
-func (s *Robot) GetLatest() OptNilTelemetryReading {
+func (s *Robot) GetLatest() OptNilMeasurement {
 	return s.Latest
 }
 
@@ -1081,24 +1253,14 @@ func (s *Robot) SetSerialNumber(val string) {
 	s.SerialNumber = val
 }
 
-// SetLocation sets the value of Location.
-func (s *Robot) SetLocation(val string) {
-	s.Location = val
+// SetGatewayId sets the value of GatewayId.
+func (s *Robot) SetGatewayId(val uuid.UUID) {
+	s.GatewayId = val
 }
 
-// SetStatus sets the value of Status.
-func (s *Robot) SetStatus(val RobotStatus) {
-	s.Status = val
-}
-
-// SetRegisteredAt sets the value of RegisteredAt.
-func (s *Robot) SetRegisteredAt(val time.Time) {
-	s.RegisteredAt = val
-}
-
-// SetDecommissionedAt sets the value of DecommissionedAt.
-func (s *Robot) SetDecommissionedAt(val OptNilDateTime) {
-	s.DecommissionedAt = val
+// SetFirstSeenAt sets the value of FirstSeenAt.
+func (s *Robot) SetFirstSeenAt(val time.Time) {
+	s.FirstSeenAt = val
 }
 
 // SetConnectivity sets the value of Connectivity.
@@ -1112,67 +1274,11 @@ func (s *Robot) SetLastSeenAt(val OptNilDateTime) {
 }
 
 // SetLatest sets the value of Latest.
-func (s *Robot) SetLatest(val OptNilTelemetryReading) {
+func (s *Robot) SetLatest(val OptNilMeasurement) {
 	s.Latest = val
 }
 
 func (*Robot) getRobotRes() {}
-
-// Ref: #/components/schemas/RobotCreate
-type RobotCreate struct {
-	// Unique across the fleet.
-	SerialNumber string `json:"serialNumber"`
-	// Where the robot is deployed, e.g. "Munich HQ, floor 2".
-	Location string `json:"location"`
-}
-
-// GetSerialNumber returns the value of SerialNumber.
-func (s *RobotCreate) GetSerialNumber() string {
-	return s.SerialNumber
-}
-
-// GetLocation returns the value of Location.
-func (s *RobotCreate) GetLocation() string {
-	return s.Location
-}
-
-// SetSerialNumber sets the value of SerialNumber.
-func (s *RobotCreate) SetSerialNumber(val string) {
-	s.SerialNumber = val
-}
-
-// SetLocation sets the value of Location.
-func (s *RobotCreate) SetLocation(val string) {
-	s.Location = val
-}
-
-// RobotHeaders wraps Robot with response headers.
-type RobotHeaders struct {
-	Location OptURI
-	Response Robot
-}
-
-// GetLocation returns the value of Location.
-func (s *RobotHeaders) GetLocation() OptURI {
-	return s.Location
-}
-
-// GetResponse returns the value of Response.
-func (s *RobotHeaders) GetResponse() Robot {
-	return s.Response
-}
-
-// SetLocation sets the value of Location.
-func (s *RobotHeaders) SetLocation(val OptURI) {
-	s.Location = val
-}
-
-// SetResponse sets the value of Response.
-func (s *RobotHeaders) SetResponse(val Robot) {
-	s.Response = val
-}
-
-func (*RobotHeaders) createRobotRes() {}
 
 // Ref: #/components/schemas/RobotPage
 type RobotPage struct {
@@ -1201,138 +1307,4 @@ func (s *RobotPage) SetHasMore(val bool) {
 	s.HasMore = val
 }
 
-func (*RobotPage) listRobotsRes() {}
-
-// Ref: #/components/schemas/RobotStatus
-type RobotStatus string
-
-const (
-	RobotStatusActive         RobotStatus = "active"
-	RobotStatusDecommissioned RobotStatus = "decommissioned"
-)
-
-// AllValues returns all RobotStatus values.
-func (RobotStatus) AllValues() []RobotStatus {
-	return []RobotStatus{
-		RobotStatusActive,
-		RobotStatusDecommissioned,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RobotStatus) MarshalText() ([]byte, error) {
-	switch s {
-	case RobotStatusActive:
-		return []byte(s), nil
-	case RobotStatusDecommissioned:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RobotStatus) UnmarshalText(data []byte) error {
-	switch RobotStatus(data) {
-	case RobotStatusActive:
-		*s = RobotStatusActive
-		return nil
-	case RobotStatusDecommissioned:
-		*s = RobotStatusDecommissioned
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-// Ref: #/components/schemas/TelemetryPage
-type TelemetryPage struct {
-	Items []TelemetryReading `json:"items"`
-	// True if more items follow this page.
-	HasMore bool `json:"hasMore"`
-}
-
-// GetItems returns the value of Items.
-func (s *TelemetryPage) GetItems() []TelemetryReading {
-	return s.Items
-}
-
-// GetHasMore returns the value of HasMore.
-func (s *TelemetryPage) GetHasMore() bool {
-	return s.HasMore
-}
-
-// SetItems sets the value of Items.
-func (s *TelemetryPage) SetItems(val []TelemetryReading) {
-	s.Items = val
-}
-
-// SetHasMore sets the value of HasMore.
-func (s *TelemetryPage) SetHasMore(val bool) {
-	s.HasMore = val
-}
-
-func (*TelemetryPage) listRobotTelemetryRes() {}
-
-// Ref: #/components/schemas/TelemetryReading
-type TelemetryReading struct {
-	// Null if not reported.
-	BatteryPct OptNilFloat64 `json:"batteryPct"`
-	// Null if the robot is not localized.
-	Position OptNilPosition `json:"position"`
-	Activity Activity       `json:"activity"`
-	// Codes of the faults active at this moment; empty when all is well.
-	ActiveFaultCodes []string `json:"activeFaultCodes"`
-	// When the robot took the reading.
-	RecordedAt time.Time `json:"recordedAt"`
-}
-
-// GetBatteryPct returns the value of BatteryPct.
-func (s *TelemetryReading) GetBatteryPct() OptNilFloat64 {
-	return s.BatteryPct
-}
-
-// GetPosition returns the value of Position.
-func (s *TelemetryReading) GetPosition() OptNilPosition {
-	return s.Position
-}
-
-// GetActivity returns the value of Activity.
-func (s *TelemetryReading) GetActivity() Activity {
-	return s.Activity
-}
-
-// GetActiveFaultCodes returns the value of ActiveFaultCodes.
-func (s *TelemetryReading) GetActiveFaultCodes() []string {
-	return s.ActiveFaultCodes
-}
-
-// GetRecordedAt returns the value of RecordedAt.
-func (s *TelemetryReading) GetRecordedAt() time.Time {
-	return s.RecordedAt
-}
-
-// SetBatteryPct sets the value of BatteryPct.
-func (s *TelemetryReading) SetBatteryPct(val OptNilFloat64) {
-	s.BatteryPct = val
-}
-
-// SetPosition sets the value of Position.
-func (s *TelemetryReading) SetPosition(val OptNilPosition) {
-	s.Position = val
-}
-
-// SetActivity sets the value of Activity.
-func (s *TelemetryReading) SetActivity(val Activity) {
-	s.Activity = val
-}
-
-// SetActiveFaultCodes sets the value of ActiveFaultCodes.
-func (s *TelemetryReading) SetActiveFaultCodes(val []string) {
-	s.ActiveFaultCodes = val
-}
-
-// SetRecordedAt sets the value of RecordedAt.
-func (s *TelemetryReading) SetRecordedAt(val time.Time) {
-	s.RecordedAt = val
-}
+func (*RobotPage) listGatewayRobotsRes() {}

@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Identity, error handling and timestamp precision are the same for every
+// service in this package; see gateway_service.proto.
+
+// RobotService receives data about one robot, sent by its gateway.
+//
+// Delivery: one item per request, oldest first. OK means it is stored, so
+// the gateway can drop it from its buffer. Every item has an idempotency
+// key; an item whose key is already stored is answered with OK and not
+// stored again, so resending is always safe.
+service RobotService {
+  // Reports one measurement of one robot, about once per second.
+  // Idempotency key: (robot_id, measured_at).
+  //
+  // INVALID_ARGUMENT if:
+  //   - measurement is missing
+  //   - robot_id is not a UUID
+  //   - measured_at is missing or invalid
+  //   - battery_pct is set and not a finite number from 0 to 100
+  //   - position is set and x, y or heading_rad is not finite
+  rpc ReportMeasurement(ReportMeasurementRequest) returns (ReportMeasurementResponse);
+
+  // Reports one fault of one robot once, when the robot first detects it.
+  // While the fault is active, its code is listed in every measurement.
+  // Idempotency key: (robot_id, code, occurred_at).
+  //
+  // INVALID_ARGUMENT if:
+  //   - fault is missing
+  //   - robot_id is not a UUID
+  //   - code is empty
+  //   - occurred_at is missing or invalid
+  rpc ReportFault(ReportFaultRequest) returns (ReportFaultResponse);
+}
+
+// ReportMeasurementRequest carries one measurement.
+message ReportMeasurementRequest {
+  Measurement measurement = 1;
+}
+
+// ReportMeasurementResponse is empty; the OK status is the acknowledgement.
+message ReportMeasurementResponse {}
+
+// ReportFaultRequest carries one fault.
+message ReportFaultRequest {
+  Fault fault = 1;
+}
+
+// ReportFaultResponse is empty; the OK status is the acknowledgement.
+message ReportFaultResponse {}
+
+// Measurement is a snapshot of one robot's state at one moment.
+message Measurement {
+  // The robot this measurement belongs to.
+  string robot_id = 1;
+
+  // Charge level, 0 to 100. Unset if the robot does not report it.
+  optional double battery_pct = 2;
+
+  // Estimated position. Unset if the robot does not report it.
+  Position position = 3;
+
+  Activity activity = 4;
+
+  // Fault.code of every fault active right now, repeated in each
+  // measurement until the fault is resolved; empty when all is well.
+  repeated string active_fault_codes = 5;
+
+  // When the measurement was taken, by the robot's or gateway's clock. The
+  // system records its own receive time separately.
+  google.protobuf.Timestamp measured_at = 6;
+}
+
+// Position is where the robot thinks it is, and which way it faces.
+message Position {
+  // Which map, e.g. one per floor of a site.
+  string map_id = 1;
+  // Metres from the map's origin.
+  double x = 2;
+  double y = 3;
+  // Radians, counter-clockwise from the map's x axis.
+  double heading_rad = 4;
+}
+
+// Activity is what the robot says it is doing.
+enum Activity {
+  ACTIVITY_UNSPECIFIED = 0;
+  ACTIVITY_IDLE = 1;
+  ACTIVITY_MOVING = 2;
+  ACTIVITY_CHARGING = 3;
+  // Stopped by a fault; see active_fault_codes.
+  ACTIVITY_ERROR = 4;
+}
+
+// Fault is a problem a robot detected.
+message Fault {
+  // Severity is how much the fault affects the robot's work.
+  enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    // The robot keeps working.
+    SEVERITY_WARNING = 1;
+    // The robot cannot work until someone helps.
+    SEVERITY_CRITICAL = 2;
+  }
+
+  // The robot this fault belongs to.
+  string robot_id = 1;
+  // Vendor-defined, e.g. "LIDAR_TIMEOUT".
+  string code = 2;
+  Severity severity = 3;
+  // Description for humans.
+  string message = 4;
+  // When the robot detected the fault, by its own clock.
+  google.protobuf.Timestamp occurred_at = 5;
+}
