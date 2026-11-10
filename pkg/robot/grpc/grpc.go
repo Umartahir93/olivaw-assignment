@@ -121,9 +121,11 @@ func finite(f float64) bool {
 }
 
 // toStatus maps an error from the robot service to the contract's codes.
+// Other errors are unexpected and returned as they are; the middleware logs
+// them and answers INTERNAL.
 func toStatus(err error) error {
 	if errors.Is(err, domain.ErrNotFound) || errors.Is(err, domain.ErrOtherGateway) {
 		return status.Error(codes.PermissionDenied, "robot is not one of this gateway's robots")
 	}
-	return status.Error(codes.Internal, "internal error")
+	return err
 }

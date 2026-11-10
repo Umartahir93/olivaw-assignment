@@ -82,7 +82,7 @@ func (s *Server) ReportScan(ctx context.Context, req *gatewayv1.ReportScanReques
 
 // CallingGateway reads the calling gateway's ID from the metadata and marks
 // the gateway as seen. A missing or malformed ID is UNAUTHENTICATED, an
-// unregistered gateway PERMISSION_DENIED.
+// unregistered gateway PERMISSION_DENIED. Other errors are returned as they are.
 func CallingGateway(ctx context.Context, gateways GatewayService) (uuid.UUID, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	values := md.Get(GatewayIDKey)
@@ -97,7 +97,7 @@ func CallingGateway(ctx context.Context, gateways GatewayService) (uuid.UUID, er
 		if errors.Is(err, gatewaydomain.ErrNotFound) {
 			return uuid.UUID{}, status.Error(codes.PermissionDenied, "gateway is not registered")
 		}
-		return uuid.UUID{}, status.Error(codes.Internal, "internal error")
+		return uuid.UUID{}, err
 	}
 	return id, nil
 }
@@ -119,11 +119,13 @@ func validateScan(serials []string) error {
 }
 
 // toStatus maps an error from the robot service to the contract's codes.
+// Other errors are unexpected and returned as they are; the middleware logs
+// them and answers INTERNAL.
 func toStatus(err error) error {
 	if errors.Is(err, robotdomain.ErrOtherGateway) {
 		return status.Error(codes.PermissionDenied, "a scanned robot belongs to another gateway")
 	}
-	return status.Error(codes.Internal, "internal error")
+	return err
 }
 
 func robotsToProto(robots []robotdomain.Robot) []*gatewayv1.Robot {

@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/umartahir93/olivaw-assignment/utils"
 
 	gatewayservice "github.com/umartahir93/olivaw-assignment/pkg/gateway"
 	"github.com/umartahir93/olivaw-assignment/pkg/gateway/domain"
-	"github.com/umartahir93/olivaw-assignment/pkg/postgres"
 )
 
 // Queries. Every query returns gatewayColumns, in that order.
@@ -110,7 +110,7 @@ func (r *Repository) CreateGateway(ctx context.Context, g domain.Gateway) (domai
 	)
 	if err != nil {
 		switch {
-		case postgres.IsUniqueViolation(err):
+		case utils.IsUniqueViolation(err):
 			return domain.Gateway{}, domain.ErrAlreadyExists
 		default:
 			return domain.Gateway{}, err
@@ -125,7 +125,7 @@ func (r *Repository) GetGateway(ctx context.Context, id uuid.UUID) (domain.Gatew
 	var gatewayDB gateway
 	err := r.selectGatewayByID.GetContext(ctx, &gatewayDB, id)
 	switch {
-	case postgres.IsNoRows(err):
+	case utils.IsNoRows(err):
 		return domain.Gateway{}, domain.ErrNotFound
 	case err != nil:
 		return domain.Gateway{}, err
@@ -169,7 +169,7 @@ func (r *Repository) UpdateGatewayLastSeen(ctx context.Context, id uuid.UUID, at
 	var out gateway
 	err = r.selectGatewayByID.GetContext(ctx, &out, id)
 	switch {
-	case postgres.IsNoRows(err):
+	case utils.IsNoRows(err):
 		return domain.Gateway{}, domain.ErrNotFound
 	case err != nil:
 		return domain.Gateway{}, err
