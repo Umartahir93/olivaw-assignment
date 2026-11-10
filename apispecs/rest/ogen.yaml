@@ -1,0 +1,11 @@
+# ogen generates the models and the server side of the REST contract:
+# routing, decoding and validation of parameters and bodies. The handlers
+# that implement fleetv1.Handler are written by hand in api/.
+generator:
+  features:
+    disable:
+      - paths/client
+      - webhooks/client
+      - webhooks/server
+      - ogen/otel
+      - ogen/unimplemented

@@ -1,0 +1,442 @@
+openapi: 3.0.3
+info:
+  title: Olivaw Fleet API
+  version: 1.0.0
+  description: |
+    Onboard robots and follow what the fleet is doing: the current state of
+    every robot, and the recent telemetry and faults of each one.
+tags:
+  - name: Robots
+    description: Robots and their current state.
+  - name: History
+    description: Past telemetry and faults of one robot.
+
+paths:
+  /v1/robots:
+    get:
+      operationId: listRobots
+      tags: [Robots]
+      summary: List robots with their current state
+      parameters:
+        - name: connectivity
+          in: query
+          description: Only robots with this connectivity.
+          schema:
+            $ref: "#/components/schemas/Connectivity"
+        - name: status
+          in: query
+          description: Only robots with this status. Without it, all robots are listed.
+          schema:
+            $ref: "#/components/schemas/RobotStatus"
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: One page of robots, oldest first by registeredAt.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createRobot
+      tags: [Robots]
+      summary: Onboard a robot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RobotCreate"
+      responses:
+        "201":
+          description: The robot was registered.
+          headers:
+            Location:
+              description: URL of the new robot.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Robot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: A robot with this serial number is already registered, including decommissioned robots.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /v1/robots/{robotId}:
+    parameters:
+      - $ref: "#/components/parameters/RobotId"
+    get:
+      operationId: getRobot
+      tags: [Robots]
+      summary: Get a robot with its current state
+      responses:
+        "200":
+          description: The robot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Robot"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: decommissionRobot
+      tags: [Robots]
+      summary: Decommission a robot
+      description: |
+        The robot stays available with status `decommissioned` and no longer
+        reports new telemetry. Repeating the call also succeeds.
+      responses:
+        "204":
+          description: The robot is decommissioned.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /v1/robots/{robotId}/telemetry:
+    parameters:
+      - $ref: "#/components/parameters/RobotId"
+    get:
+      operationId: listRobotTelemetry
+      tags: [History]
+      summary: List a robot's readings
+      description: |
+        Returns readings from a time range of at most 24 hours, on any date.
+        Without `from` and `to`, that is the last 24 hours.
+      parameters:
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: One page of readings, oldest first by recordedAt.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /v1/robots/{robotId}/faults:
+    parameters:
+      - $ref: "#/components/parameters/RobotId"
+    get:
+      operationId: listRobotFaults
+      tags: [History]
+      summary: List a robot's faults
+      description: |
+        Returns faults from a time range of at most 24 hours, on any date.
+        Without `from` and `to`, that is the last 24 hours.
+      parameters:
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: One page of faults, oldest first by occurredAt.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaultPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        default:
+          $ref: "#/components/responses/Error"
+
+components:
+  parameters:
+    RobotId:
+      name: robotId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    From:
+      name: from
+      in: query
+      description: |
+        Start of the time range, inclusive. Defaults to 24 hours before `to`.
+        When paging, pass the same `from` and `to` for every page.
+      schema:
+        type: string
+        format: date-time
+    To:
+      name: to
+      in: query
+      description: |
+        End of the time range, exclusive, at most 24 hours after `from`.
+        Defaults to now.
+      schema:
+        type: string
+        format: date-time
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+
+  responses:
+    BadRequest:
+      description: Invalid request, e.g. a malformed parameter or a time range longer than 24 hours.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: The robot does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Error:
+      description: Unexpected error.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+
+  schemas:
+    # Robots
+
+    Robot:
+      type: object
+      description: A robot and its current state.
+      required: [robotId, serialNumber, location, status, registeredAt, connectivity]
+      properties:
+        robotId:
+          type: string
+          format: uuid
+          description: Assigned at onboarding.
+        serialNumber:
+          type: string
+        location:
+          type: string
+          description: Where the robot is deployed, e.g. "Munich HQ, floor 2".
+        status:
+          $ref: "#/components/schemas/RobotStatus"
+        registeredAt:
+          type: string
+          format: date-time
+        decommissionedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null while the robot is active.
+        connectivity:
+          $ref: "#/components/schemas/Connectivity"
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When data last arrived; null if never.
+        latest:
+          allOf:
+            - $ref: "#/components/schemas/TelemetryReading"
+          nullable: true
+          description: The newest reading; null if none yet.
+
+    RobotCreate:
+      type: object
+      required: [serialNumber, location]
+      properties:
+        serialNumber:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Unique across the fleet.
+        location:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Where the robot is deployed, e.g. "Munich HQ, floor 2".
+
+    RobotStatus:
+      type: string
+      enum: [active, decommissioned]
+
+    Connectivity:
+      type: string
+      description: |
+        never_seen: no data yet. online: sending data. stale: missed a few
+        updates. offline: no data for a while; decommissioned robots end up
+        offline.
+      enum: [never_seen, online, stale, offline]
+
+    RobotPage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Robot"
+        hasMore:
+          type: boolean
+          description: True if more items follow this page.
+
+    # Telemetry and faults
+
+    TelemetryReading:
+      type: object
+      required: [activity, activeFaultCodes, recordedAt]
+      properties:
+        batteryPct:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: Null if not reported.
+        position:
+          allOf:
+            - $ref: "#/components/schemas/Position"
+          nullable: true
+          description: Null if the robot is not localized.
+        activity:
+          $ref: "#/components/schemas/Activity"
+        activeFaultCodes:
+          type: array
+          description: Codes of the faults active at this moment; empty when all is well.
+          items:
+            type: string
+        recordedAt:
+          type: string
+          format: date-time
+          description: When the robot took the reading.
+
+    Position:
+      type: object
+      required: [mapId, x, y, headingRad]
+      properties:
+        mapId:
+          type: string
+        x:
+          type: number
+          format: double
+          description: Metres from the map's origin.
+        y:
+          type: number
+          format: double
+          description: Metres from the map's origin.
+        headingRad:
+          type: number
+          format: double
+          description: Radians, counter-clockwise from the map's x axis.
+
+    Activity:
+      type: string
+      description: |
+        What the robot is doing. error: the robot cannot work. unknown: not
+        reported.
+      enum: [unknown, idle, moving, charging, error]
+
+    Fault:
+      type: object
+      description: |
+        One occurrence of a fault. While the fault is active, its code is
+        listed in the robot's activeFaultCodes.
+      required: [code, severity, message, occurredAt]
+      properties:
+        code:
+          type: string
+          description: E.g. "LIDAR_TIMEOUT".
+        severity:
+          type: string
+          description: |
+            warning: the robot keeps working. critical: the robot cannot work
+            until someone helps. unknown: not reported.
+          enum: [unknown, warning, critical]
+        message:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+          description: When the robot detected the fault.
+
+    TelemetryPage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetryReading"
+        hasMore:
+          type: boolean
+          description: True if more items follow this page.
+
+    FaultPage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Fault"
+        hasMore:
+          type: boolean
+          description: True if more items follow this page.
+
+    # Errors
+
+    Problem:
+      type: object
+      description: Problem details (RFC 9457).
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          description: URI identifying the problem type.
+          default: about:blank
+        title:
+          type: string
+          description: Short summary, e.g. "Not Found".
+        status:
+          type: integer
+          description: HTTP status code.
+        detail:
+          type: string
+          description: Explanation of this occurrence.
+        instance:
+          type: string
+          description: URI of the request that failed.

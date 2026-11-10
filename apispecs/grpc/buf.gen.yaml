@@ -1,7 +1,4 @@
 version: v2
-# Delete gen/ before generating, so files from renamed or removed protos do
-# not linger.
-clean: true
 managed:
   enabled: true
   override:
@@ -14,5 +11,3 @@ plugins:
   - local: protoc-gen-go-grpc
     out: gen
     opt: paths=source_relative
-inputs:
-  - directory: proto

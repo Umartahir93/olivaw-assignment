@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: olivaw/fleet/v1/telemetry.proto
+// source: telemetry/v1/telemetry.proto
 
-package fleetv1
+package telemetryv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -63,11 +63,11 @@ func (x Activity) String() string {
 }
 
 func (Activity) Descriptor() protoreflect.EnumDescriptor {
-	return file_olivaw_fleet_v1_telemetry_proto_enumTypes[0].Descriptor()
+	return file_telemetry_v1_telemetry_proto_enumTypes[0].Descriptor()
 }
 
 func (Activity) Type() protoreflect.EnumType {
-	return &file_olivaw_fleet_v1_telemetry_proto_enumTypes[0]
+	return &file_telemetry_v1_telemetry_proto_enumTypes[0]
 }
 
 func (x Activity) Number() protoreflect.EnumNumber {
@@ -76,7 +76,7 @@ func (x Activity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Activity.Descriptor instead.
 func (Activity) EnumDescriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{0}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{0}
 }
 
 // Severity is how much the fault affects the robot's work.
@@ -115,11 +115,11 @@ func (x Fault_Severity) String() string {
 }
 
 func (Fault_Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_olivaw_fleet_v1_telemetry_proto_enumTypes[1].Descriptor()
+	return file_telemetry_v1_telemetry_proto_enumTypes[1].Descriptor()
 }
 
 func (Fault_Severity) Type() protoreflect.EnumType {
-	return &file_olivaw_fleet_v1_telemetry_proto_enumTypes[1]
+	return &file_telemetry_v1_telemetry_proto_enumTypes[1]
 }
 
 func (x Fault_Severity) Number() protoreflect.EnumNumber {
@@ -128,7 +128,7 @@ func (x Fault_Severity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Fault_Severity.Descriptor instead.
 func (Fault_Severity) EnumDescriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{6, 0}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{6, 0}
 }
 
 // ReportTelemetryRequest carries one reading from one robot.
@@ -141,7 +141,7 @@ type ReportTelemetryRequest struct {
 
 func (x *ReportTelemetryRequest) Reset() {
 	*x = ReportTelemetryRequest{}
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[0]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -153,7 +153,7 @@ func (x *ReportTelemetryRequest) String() string {
 func (*ReportTelemetryRequest) ProtoMessage() {}
 
 func (x *ReportTelemetryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[0]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -166,7 +166,7 @@ func (x *ReportTelemetryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportTelemetryRequest.ProtoReflect.Descriptor instead.
 func (*ReportTelemetryRequest) Descriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{0}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ReportTelemetryRequest) GetReading() *TelemetryReading {
@@ -185,7 +185,7 @@ type ReportTelemetryResponse struct {
 
 func (x *ReportTelemetryResponse) Reset() {
 	*x = ReportTelemetryResponse{}
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[1]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -197,7 +197,7 @@ func (x *ReportTelemetryResponse) String() string {
 func (*ReportTelemetryResponse) ProtoMessage() {}
 
 func (x *ReportTelemetryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[1]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -210,7 +210,7 @@ func (x *ReportTelemetryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportTelemetryResponse.ProtoReflect.Descriptor instead.
 func (*ReportTelemetryResponse) Descriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{1}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{1}
 }
 
 // TelemetryReading is a snapshot of a robot's state.
@@ -220,7 +220,7 @@ type TelemetryReading struct {
 	BatteryPct *float64 `protobuf:"fixed64,1,opt,name=battery_pct,json=batteryPct,proto3,oneof" json:"battery_pct,omitempty"`
 	// Estimated position. Unset if the robot is not localized.
 	Position *Position `protobuf:"bytes,2,opt,name=position,proto3" json:"position,omitempty"`
-	Activity Activity  `protobuf:"varint,3,opt,name=activity,proto3,enum=olivaw.fleet.v1.Activity" json:"activity,omitempty"`
+	Activity Activity  `protobuf:"varint,3,opt,name=activity,proto3,enum=telemetry.v1.Activity" json:"activity,omitempty"`
 	// Fault.code of every fault active right now, repeated in each snapshot
 	// until the fault is resolved; empty when all is well. A fault is resolved
 	// once its code disappears. Details arrive once through ReportFault.
@@ -234,7 +234,7 @@ type TelemetryReading struct {
 
 func (x *TelemetryReading) Reset() {
 	*x = TelemetryReading{}
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[2]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -246,7 +246,7 @@ func (x *TelemetryReading) String() string {
 func (*TelemetryReading) ProtoMessage() {}
 
 func (x *TelemetryReading) ProtoReflect() protoreflect.Message {
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[2]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -259,7 +259,7 @@ func (x *TelemetryReading) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TelemetryReading.ProtoReflect.Descriptor instead.
 func (*TelemetryReading) Descriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{2}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *TelemetryReading) GetBatteryPct() float64 {
@@ -313,7 +313,7 @@ type Position struct {
 
 func (x *Position) Reset() {
 	*x = Position{}
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[3]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +325,7 @@ func (x *Position) String() string {
 func (*Position) ProtoMessage() {}
 
 func (x *Position) ProtoReflect() protoreflect.Message {
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[3]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +338,7 @@ func (x *Position) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Position.ProtoReflect.Descriptor instead.
 func (*Position) Descriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{3}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Position) GetMapId() string {
@@ -379,7 +379,7 @@ type ReportFaultRequest struct {
 
 func (x *ReportFaultRequest) Reset() {
 	*x = ReportFaultRequest{}
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[4]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -391,7 +391,7 @@ func (x *ReportFaultRequest) String() string {
 func (*ReportFaultRequest) ProtoMessage() {}
 
 func (x *ReportFaultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[4]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -404,7 +404,7 @@ func (x *ReportFaultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportFaultRequest.ProtoReflect.Descriptor instead.
 func (*ReportFaultRequest) Descriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{4}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ReportFaultRequest) GetFault() *Fault {
@@ -423,7 +423,7 @@ type ReportFaultResponse struct {
 
 func (x *ReportFaultResponse) Reset() {
 	*x = ReportFaultResponse{}
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[5]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -435,7 +435,7 @@ func (x *ReportFaultResponse) String() string {
 func (*ReportFaultResponse) ProtoMessage() {}
 
 func (x *ReportFaultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[5]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -448,7 +448,7 @@ func (x *ReportFaultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportFaultResponse.ProtoReflect.Descriptor instead.
 func (*ReportFaultResponse) Descriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{5}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{5}
 }
 
 // Fault is a problem the robot detected.
@@ -456,7 +456,7 @@ type Fault struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Vendor-defined, e.g. "LIDAR_TIMEOUT".
 	Code     string         `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	Severity Fault_Severity `protobuf:"varint,2,opt,name=severity,proto3,enum=olivaw.fleet.v1.Fault_Severity" json:"severity,omitempty"`
+	Severity Fault_Severity `protobuf:"varint,2,opt,name=severity,proto3,enum=telemetry.v1.Fault_Severity" json:"severity,omitempty"`
 	// Description for humans.
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// When the robot detected it, by its own clock.
@@ -467,7 +467,7 @@ type Fault struct {
 
 func (x *Fault) Reset() {
 	*x = Fault{}
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[6]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +479,7 @@ func (x *Fault) String() string {
 func (*Fault) ProtoMessage() {}
 
 func (x *Fault) ProtoReflect() protoreflect.Message {
-	mi := &file_olivaw_fleet_v1_telemetry_proto_msgTypes[6]
+	mi := &file_telemetry_v1_telemetry_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +492,7 @@ func (x *Fault) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Fault.ProtoReflect.Descriptor instead.
 func (*Fault) Descriptor() ([]byte, []int) {
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP(), []int{6}
+	return file_telemetry_v1_telemetry_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Fault) GetCode() string {
@@ -523,19 +523,19 @@ func (x *Fault) GetOccurredAt() *timestamppb.Timestamp {
 	return nil
 }
 
-var File_olivaw_fleet_v1_telemetry_proto protoreflect.FileDescriptor
+var File_telemetry_v1_telemetry_proto protoreflect.FileDescriptor
 
-const file_olivaw_fleet_v1_telemetry_proto_rawDesc = "" +
+const file_telemetry_v1_telemetry_proto_rawDesc = "" +
 	"\n" +
-	"\x1folivaw/fleet/v1/telemetry.proto\x12\x0folivaw.fleet.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"U\n" +
-	"\x16ReportTelemetryRequest\x12;\n" +
-	"\areading\x18\x01 \x01(\v2!.olivaw.fleet.v1.TelemetryReadingR\areading\"\x19\n" +
-	"\x17ReportTelemetryResponse\"\xa1\x02\n" +
+	"\x1ctelemetry/v1/telemetry.proto\x12\ftelemetry.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"R\n" +
+	"\x16ReportTelemetryRequest\x128\n" +
+	"\areading\x18\x01 \x01(\v2\x1e.telemetry.v1.TelemetryReadingR\areading\"\x19\n" +
+	"\x17ReportTelemetryResponse\"\x9b\x02\n" +
 	"\x10TelemetryReading\x12$\n" +
 	"\vbattery_pct\x18\x01 \x01(\x01H\x00R\n" +
-	"batteryPct\x88\x01\x01\x125\n" +
-	"\bposition\x18\x02 \x01(\v2\x19.olivaw.fleet.v1.PositionR\bposition\x125\n" +
-	"\bactivity\x18\x03 \x01(\x0e2\x19.olivaw.fleet.v1.ActivityR\bactivity\x12,\n" +
+	"batteryPct\x88\x01\x01\x122\n" +
+	"\bposition\x18\x02 \x01(\v2\x16.telemetry.v1.PositionR\bposition\x122\n" +
+	"\bactivity\x18\x03 \x01(\x0e2\x16.telemetry.v1.ActivityR\bactivity\x12,\n" +
 	"\x12active_fault_codes\x18\x04 \x03(\tR\x10activeFaultCodes\x12;\n" +
 	"\vrecorded_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"recordedAtB\x0e\n" +
@@ -545,13 +545,13 @@ const file_olivaw_fleet_v1_telemetry_proto_rawDesc = "" +
 	"\x01x\x18\x02 \x01(\x01R\x01x\x12\f\n" +
 	"\x01y\x18\x03 \x01(\x01R\x01y\x12\x1f\n" +
 	"\vheading_rad\x18\x04 \x01(\x01R\n" +
-	"headingRad\"B\n" +
-	"\x12ReportFaultRequest\x12,\n" +
-	"\x05fault\x18\x01 \x01(\v2\x16.olivaw.fleet.v1.FaultR\x05fault\"\x15\n" +
-	"\x13ReportFaultResponse\"\x82\x02\n" +
+	"headingRad\"?\n" +
+	"\x12ReportFaultRequest\x12)\n" +
+	"\x05fault\x18\x01 \x01(\v2\x13.telemetry.v1.FaultR\x05fault\"\x15\n" +
+	"\x13ReportFaultResponse\"\xff\x01\n" +
 	"\x05Fault\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\tR\x04code\x12;\n" +
-	"\bseverity\x18\x02 \x01(\x0e2\x1f.olivaw.fleet.v1.Fault.SeverityR\bseverity\x12\x18\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x128\n" +
+	"\bseverity\x18\x02 \x01(\x0e2\x1c.telemetry.v1.Fault.SeverityR\bseverity\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x12;\n" +
 	"\voccurred_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"occurredAt\"Q\n" +
@@ -564,50 +564,50 @@ const file_olivaw_fleet_v1_telemetry_proto_rawDesc = "" +
 	"\rACTIVITY_IDLE\x10\x01\x12\x13\n" +
 	"\x0fACTIVITY_MOVING\x10\x02\x12\x15\n" +
 	"\x11ACTIVITY_CHARGING\x10\x03\x12\x12\n" +
-	"\x0eACTIVITY_ERROR\x10\x042\xd2\x01\n" +
-	"\x10TelemetryService\x12d\n" +
-	"\x0fReportTelemetry\x12'.olivaw.fleet.v1.ReportTelemetryRequest\x1a(.olivaw.fleet.v1.ReportTelemetryResponse\x12X\n" +
-	"\vReportFault\x12#.olivaw.fleet.v1.ReportFaultRequest\x1a$.olivaw.fleet.v1.ReportFaultResponseB\xc9\x01\n" +
-	"\x13com.olivaw.fleet.v1B\x0eTelemetryProtoP\x01ZDgithub.com/umartahir93/olivaw-assignment/gen/olivaw/fleet/v1;fleetv1\xa2\x02\x03OFX\xaa\x02\x0fOlivaw.Fleet.V1\xca\x02\x0fOlivaw\\Fleet\\V1\xe2\x02\x1bOlivaw\\Fleet\\V1\\GPBMetadata\xea\x02\x11Olivaw::Fleet::V1b\x06proto3"
+	"\x0eACTIVITY_ERROR\x10\x042\xc6\x01\n" +
+	"\x10TelemetryService\x12^\n" +
+	"\x0fReportTelemetry\x12$.telemetry.v1.ReportTelemetryRequest\x1a%.telemetry.v1.ReportTelemetryResponse\x12R\n" +
+	"\vReportFault\x12 .telemetry.v1.ReportFaultRequest\x1a!.telemetry.v1.ReportFaultResponseB\xba\x01\n" +
+	"\x10com.telemetry.v1B\x0eTelemetryProtoP\x01ZEgithub.com/umartahir93/olivaw-assignment/gen/telemetry/v1;telemetryv1\xa2\x02\x03TXX\xaa\x02\fTelemetry.V1\xca\x02\fTelemetry\\V1\xe2\x02\x18Telemetry\\V1\\GPBMetadata\xea\x02\rTelemetry::V1b\x06proto3"
 
 var (
-	file_olivaw_fleet_v1_telemetry_proto_rawDescOnce sync.Once
-	file_olivaw_fleet_v1_telemetry_proto_rawDescData []byte
+	file_telemetry_v1_telemetry_proto_rawDescOnce sync.Once
+	file_telemetry_v1_telemetry_proto_rawDescData []byte
 )
 
-func file_olivaw_fleet_v1_telemetry_proto_rawDescGZIP() []byte {
-	file_olivaw_fleet_v1_telemetry_proto_rawDescOnce.Do(func() {
-		file_olivaw_fleet_v1_telemetry_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_olivaw_fleet_v1_telemetry_proto_rawDesc), len(file_olivaw_fleet_v1_telemetry_proto_rawDesc)))
+func file_telemetry_v1_telemetry_proto_rawDescGZIP() []byte {
+	file_telemetry_v1_telemetry_proto_rawDescOnce.Do(func() {
+		file_telemetry_v1_telemetry_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_telemetry_v1_telemetry_proto_rawDesc), len(file_telemetry_v1_telemetry_proto_rawDesc)))
 	})
-	return file_olivaw_fleet_v1_telemetry_proto_rawDescData
+	return file_telemetry_v1_telemetry_proto_rawDescData
 }
 
-var file_olivaw_fleet_v1_telemetry_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_olivaw_fleet_v1_telemetry_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_olivaw_fleet_v1_telemetry_proto_goTypes = []any{
-	(Activity)(0),                   // 0: olivaw.fleet.v1.Activity
-	(Fault_Severity)(0),             // 1: olivaw.fleet.v1.Fault.Severity
-	(*ReportTelemetryRequest)(nil),  // 2: olivaw.fleet.v1.ReportTelemetryRequest
-	(*ReportTelemetryResponse)(nil), // 3: olivaw.fleet.v1.ReportTelemetryResponse
-	(*TelemetryReading)(nil),        // 4: olivaw.fleet.v1.TelemetryReading
-	(*Position)(nil),                // 5: olivaw.fleet.v1.Position
-	(*ReportFaultRequest)(nil),      // 6: olivaw.fleet.v1.ReportFaultRequest
-	(*ReportFaultResponse)(nil),     // 7: olivaw.fleet.v1.ReportFaultResponse
-	(*Fault)(nil),                   // 8: olivaw.fleet.v1.Fault
+var file_telemetry_v1_telemetry_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_telemetry_v1_telemetry_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_telemetry_v1_telemetry_proto_goTypes = []any{
+	(Activity)(0),                   // 0: telemetry.v1.Activity
+	(Fault_Severity)(0),             // 1: telemetry.v1.Fault.Severity
+	(*ReportTelemetryRequest)(nil),  // 2: telemetry.v1.ReportTelemetryRequest
+	(*ReportTelemetryResponse)(nil), // 3: telemetry.v1.ReportTelemetryResponse
+	(*TelemetryReading)(nil),        // 4: telemetry.v1.TelemetryReading
+	(*Position)(nil),                // 5: telemetry.v1.Position
+	(*ReportFaultRequest)(nil),      // 6: telemetry.v1.ReportFaultRequest
+	(*ReportFaultResponse)(nil),     // 7: telemetry.v1.ReportFaultResponse
+	(*Fault)(nil),                   // 8: telemetry.v1.Fault
 	(*timestamppb.Timestamp)(nil),   // 9: google.protobuf.Timestamp
 }
-var file_olivaw_fleet_v1_telemetry_proto_depIdxs = []int32{
-	4, // 0: olivaw.fleet.v1.ReportTelemetryRequest.reading:type_name -> olivaw.fleet.v1.TelemetryReading
-	5, // 1: olivaw.fleet.v1.TelemetryReading.position:type_name -> olivaw.fleet.v1.Position
-	0, // 2: olivaw.fleet.v1.TelemetryReading.activity:type_name -> olivaw.fleet.v1.Activity
-	9, // 3: olivaw.fleet.v1.TelemetryReading.recorded_at:type_name -> google.protobuf.Timestamp
-	8, // 4: olivaw.fleet.v1.ReportFaultRequest.fault:type_name -> olivaw.fleet.v1.Fault
-	1, // 5: olivaw.fleet.v1.Fault.severity:type_name -> olivaw.fleet.v1.Fault.Severity
-	9, // 6: olivaw.fleet.v1.Fault.occurred_at:type_name -> google.protobuf.Timestamp
-	2, // 7: olivaw.fleet.v1.TelemetryService.ReportTelemetry:input_type -> olivaw.fleet.v1.ReportTelemetryRequest
-	6, // 8: olivaw.fleet.v1.TelemetryService.ReportFault:input_type -> olivaw.fleet.v1.ReportFaultRequest
-	3, // 9: olivaw.fleet.v1.TelemetryService.ReportTelemetry:output_type -> olivaw.fleet.v1.ReportTelemetryResponse
-	7, // 10: olivaw.fleet.v1.TelemetryService.ReportFault:output_type -> olivaw.fleet.v1.ReportFaultResponse
+var file_telemetry_v1_telemetry_proto_depIdxs = []int32{
+	4, // 0: telemetry.v1.ReportTelemetryRequest.reading:type_name -> telemetry.v1.TelemetryReading
+	5, // 1: telemetry.v1.TelemetryReading.position:type_name -> telemetry.v1.Position
+	0, // 2: telemetry.v1.TelemetryReading.activity:type_name -> telemetry.v1.Activity
+	9, // 3: telemetry.v1.TelemetryReading.recorded_at:type_name -> google.protobuf.Timestamp
+	8, // 4: telemetry.v1.ReportFaultRequest.fault:type_name -> telemetry.v1.Fault
+	1, // 5: telemetry.v1.Fault.severity:type_name -> telemetry.v1.Fault.Severity
+	9, // 6: telemetry.v1.Fault.occurred_at:type_name -> google.protobuf.Timestamp
+	2, // 7: telemetry.v1.TelemetryService.ReportTelemetry:input_type -> telemetry.v1.ReportTelemetryRequest
+	6, // 8: telemetry.v1.TelemetryService.ReportFault:input_type -> telemetry.v1.ReportFaultRequest
+	3, // 9: telemetry.v1.TelemetryService.ReportTelemetry:output_type -> telemetry.v1.ReportTelemetryResponse
+	7, // 10: telemetry.v1.TelemetryService.ReportFault:output_type -> telemetry.v1.ReportFaultResponse
 	9, // [9:11] is the sub-list for method output_type
 	7, // [7:9] is the sub-list for method input_type
 	7, // [7:7] is the sub-list for extension type_name
@@ -615,28 +615,28 @@ var file_olivaw_fleet_v1_telemetry_proto_depIdxs = []int32{
 	0, // [0:7] is the sub-list for field type_name
 }
 
-func init() { file_olivaw_fleet_v1_telemetry_proto_init() }
-func file_olivaw_fleet_v1_telemetry_proto_init() {
-	if File_olivaw_fleet_v1_telemetry_proto != nil {
+func init() { file_telemetry_v1_telemetry_proto_init() }
+func file_telemetry_v1_telemetry_proto_init() {
+	if File_telemetry_v1_telemetry_proto != nil {
 		return
 	}
-	file_olivaw_fleet_v1_telemetry_proto_msgTypes[2].OneofWrappers = []any{}
+	file_telemetry_v1_telemetry_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_olivaw_fleet_v1_telemetry_proto_rawDesc), len(file_olivaw_fleet_v1_telemetry_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_telemetry_v1_telemetry_proto_rawDesc), len(file_telemetry_v1_telemetry_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_olivaw_fleet_v1_telemetry_proto_goTypes,
-		DependencyIndexes: file_olivaw_fleet_v1_telemetry_proto_depIdxs,
-		EnumInfos:         file_olivaw_fleet_v1_telemetry_proto_enumTypes,
-		MessageInfos:      file_olivaw_fleet_v1_telemetry_proto_msgTypes,
+		GoTypes:           file_telemetry_v1_telemetry_proto_goTypes,
+		DependencyIndexes: file_telemetry_v1_telemetry_proto_depIdxs,
+		EnumInfos:         file_telemetry_v1_telemetry_proto_enumTypes,
+		MessageInfos:      file_telemetry_v1_telemetry_proto_msgTypes,
 	}.Build()
-	File_olivaw_fleet_v1_telemetry_proto = out.File
-	file_olivaw_fleet_v1_telemetry_proto_goTypes = nil
-	file_olivaw_fleet_v1_telemetry_proto_depIdxs = nil
+	File_telemetry_v1_telemetry_proto = out.File
+	file_telemetry_v1_telemetry_proto_goTypes = nil
+	file_telemetry_v1_telemetry_proto_depIdxs = nil
 }
