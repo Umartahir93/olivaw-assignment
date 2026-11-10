@@ -55,6 +55,12 @@ test: ## Run the unit tests.
 lint-go: $(GOLANGCI_LINT) ## Lint the Go code with golangci-lint.
 	$(GOLANGCI_LINT) run ./...
 
+##@ Simulator
+
+.PHONY: run-simulator
+run-simulator: ## Run simulated robots against the gRPC server on localhost:9090.
+	go run ./cmd/simulator
+
 ##@ gRPC (apispecs/grpc)
 
 GRPC_DIR := apispecs/grpc
