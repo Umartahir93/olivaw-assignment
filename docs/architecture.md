@@ -55,8 +55,8 @@ the API contracts and the code.
                                                                         │
                                                                         ▼
                                                               ┌───────────────────┐
-                                                              │ Storage (planned: │
-                                                              │ TimescaleDB)      │
+                                                              │ PostgreSQL +      │
+                                                              │ TimescaleDB       │
                                                               └───────────────────┘
 ```
 
@@ -150,7 +150,8 @@ robots stay. A robot missing from a later scan is kept as it is.
 - **Connectivity** is derived by the system, never reported:
   `unknown` until the first contact, `online` if something arrived in the
   last 5 minutes, otherwise `offline`.
-  - A robot counts as seen when one of its measurements arrives.
+  - A robot counts as seen when a scan reports it; after that, when its
+    newest measurement arrived.
   - A gateway counts as seen on any gRPC call it makes.
 
   A gateway that is offline means the whole site is dark; a single robot
@@ -247,11 +248,93 @@ HTTP or storage; handlers and repositories translate.
 ## Gateway simulator
 
 The simulator (`cmd/simulator`) is one gateway with a few robots behind it.
-It asks the system which robots it already knows, sends its robot list,
-and then sends one measurement per robot every second.
+It is only the gateway: an operator registers it over REST first (`make
+register-gateway`), and the simulator starts with the resulting gatewayId
+(`make simulate GATEWAY_ID=...`). It asks the system which robots it
+already knows, sends its robot list, and then sends one measurement per
+robot every second. It was written with the least effort, as part of the
+assignment; `cmd/simulator/main.go` lists what it leaves out.
 
 The robots (`pkg/simulator`) drive around a small map, use up their
 battery, and go back to a charger when the battery runs low.
+
+## Design principles
+
+**Contracts first.** The APIs are written first, as a proto file
+([`apispecs/grpc`](../apispecs/grpc)) and an OpenAPI spec
+([`apispecs/rest`](../apispecs/rest)). Servers, clients and request
+validation are generated from them (`gen/`), so the code cannot drift from
+the contract: a new endpoint does not compile until it is implemented.
+
+**Two IDs for everything.** Gateways and robots arrive with a manufacturer
+**serial number**, the business key people and gateways use. Inside, the
+server gives each one a **UUID** that never changes, and refers to that.
+
+**The server decides what it knows.** Connectivity is never reported; the
+server derives it from when data last arrived. A gateway counts as seen on
+any call, a robot when a scan reports it and then whenever a measurement
+arrives.
+
+**Thin edges, plain core.** Each entity (gateway, robot) is one package
+with the same layers:
+
+```
+pkg/gateway/
+  domain/       the entity and its rules; knows nothing about APIs or storage
+  service.go    business logic, talks to a repository interface
+  repository/   PostgreSQL storage
+  grpc/         gRPC handlers: validate, call the service, map errors
+  handler/      REST handlers: the same for REST
+```
+
+Handlers validate input and translate errors to the contract's codes;
+services hold the rules; repositories store. Each layer is tested against
+fakes of the next one.
+
+**Failures are boring.** Errors the contract defines come back as the
+contract says (`INVALID_ARGUMENT`, `PERMISSION_DENIED`, 404, 409, …).
+Anything unexpected is logged with its cause and answered as a plain
+`INTERNAL` / 500, so internals never leak; a panic in one request does not
+stop the server ([`middleware/`](../middleware)). Health checks, timeouts and
+a bounded shutdown keep it well behaved in a container.
+
+## What is built, faked and left out
+
+I chose the **server side**: it is where the interesting trade-offs are
+(contracts, identity, ingestion, storage, failure handling), and it is
+what I wanted to show.
+
+| Part | Status |
+|---|---|
+| gRPC API for gateways: identity, robot list, measurements, faults, validation | **built** |
+| REST API for people: register and read gateways and robots, problem details errors | **built** |
+| Gateways and robots stored in PostgreSQL, migrations at startup | **built** |
+| Connectivity (`unknown` / `online` / `offline`) | **built** |
+| Logging, panic recovery, health checks, Docker setup | **built** |
+| Unit, integration and end-to-end tests | **built** |
+| Measurements (TimescaleDB hypertable) and faults stored, idempotent, readable over REST by time range | **built** |
+| Compression and retention of old measurements | **left out**: TimescaleDB can do both; the policies are not set up yet |
+| Gateway | **faked**: the simulator, written with the least effort ([`cmd/simulator/README.md`](../cmd/simulator/README.md)) |
+| User interface | **left out**: the REST API is what a UI would use |
+| Authentication | **faked**: the gateway sends its gatewayId in metadata (`x-gateway-id`) instead of a client certificate; REST has no login |
+
+Why this trade: the contracts and everything around a gateway's lifecycle
+are done end to end and tested, from registering a gateway to reading a
+robot's measurements, rather than many half-finished parts.
+
+## With more time, or in production
+
+- **Compression and retention** for measurements: compress old chunks,
+  and drop them after a retention period only if the business does not
+  need old data.
+- **Real identity:** mutual TLS for gateways, login and roles for people.
+- **Pagination** and aggregates for long histories.
+- **An event pipeline** once load grows: ingestion only accepts and
+  publishes each measurement; separate consumers store it, track
+  connectivity and alert ([below](#future-an-event-driven-pipeline)).
+- **Metrics and tracing** next to the logs.
+- **A real gateway client** with the delivery rules the contract already
+  describes: buffer, retry with backoff, dead-letter queue.
 
 ## Future: an event-driven pipeline
 
