@@ -4,68 +4,8 @@ package gateway.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// The gRPC API for gateways. A gateway is the edge device at a site that
-// robots are connected to; robots never call this API themselves.
-//
-// Identity: every call carries the gateway's gatewayId in the
-// `x-gateway-id` metadata key. It stands in for an mTLS client certificate
-// in production. A gateway may only report for its own robots.
-//
-// Errors:
-//   - INVALID_ARGUMENT (fails validation), UNAUTHENTICATED (x-gateway-id
-//     missing or not a UUID): do not retry. Drop the item and log it.
-//   - Any other code, e.g. UNAVAILABLE or DEADLINE_EXCEEDED (server
-//     unreachable), PERMISSION_DENIED (gateway not registered, or robot not
-//     one of this gateway's), INTERNAL: retry up to 3 times with
-//     exponential backoff. Then move the item to the gateway's dead-letter
-//     queue, log it and count it in a metric; an alert tells an operator to
-//     fix the cause and replay the queue.
-//
-// Timestamps are stored with microsecond precision; finer digits are dropped.
-
-// GatewayService keeps the system's list of a gateway's robots in step with
-// the gateway.
-service GatewayService {
-  // Returns the robots the system knows for this gateway, with their
-  // robotId. A gateway calls it after a restart, so every robot keeps its
-  // robotId.
-  rpc ListRobots(ListRobotsRequest) returns (ListRobotsResponse);
-
-  // Reports the result of a scan: the full list of robots connected to the
-  // gateway. Robots seen for the first time get a robotId; known robots
-  // keep theirs. Robots missing from the list are kept. Sending the same
-  // list twice changes nothing.
-  //
-  // INVALID_ARGUMENT if a serial number is empty or appears twice.
-  rpc ReportScan(ReportScanRequest) returns (ReportScanResponse);
-}
-
-// ListRobotsRequest is empty; the gateway is identified by x-gateway-id.
-message ListRobotsRequest {}
-
-// ListRobotsResponse lists the gateway's robots.
-message ListRobotsResponse {
-  repeated Robot robots = 1;
-}
-
-// ReportScanRequest carries the full list of robots a scan found.
-message ReportScanRequest {
-  // Serial numbers of all robots connected to the gateway.
-  repeated string serial_numbers = 1;
-}
-
-// ReportScanResponse returns every scanned robot with its robotId.
-message ReportScanResponse {
-  repeated Robot robots = 1;
-}
-
-// Robot is a robot known to the system.
-message Robot {
-  // Assigned by the system; never changes.
-  string robot_id = 1;
-  // Business key, from the robot's manufacturer.
-  string serial_number = 2;
-}
+// Identity, error handling and timestamp precision are the same for every
+// service in this package; see gateway_service.proto.
 
 // RobotService receives data about one robot, sent by its gateway.
 //

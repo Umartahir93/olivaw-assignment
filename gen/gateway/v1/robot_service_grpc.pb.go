@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             (unknown)
-// source: gateway/v1/gateway.proto
+// source: gateway/v1/robot_service.proto
 
 package gatewayv1
 
@@ -17,170 +17,6 @@ import (
 // is compatible with the grpc package it is being compiled against.
 // Requires gRPC-Go v1.64.0 or later.
 const _ = grpc.SupportPackageIsVersion9
-
-const (
-	GatewayService_ListRobots_FullMethodName = "/gateway.v1.GatewayService/ListRobots"
-	GatewayService_ReportScan_FullMethodName = "/gateway.v1.GatewayService/ReportScan"
-)
-
-// GatewayServiceClient is the client API for GatewayService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// GatewayService keeps the system's list of a gateway's robots in step with
-// the gateway.
-type GatewayServiceClient interface {
-	// Returns the robots the system knows for this gateway, with their
-	// robotId. A gateway calls it after a restart, so every robot keeps its
-	// robotId.
-	ListRobots(ctx context.Context, in *ListRobotsRequest, opts ...grpc.CallOption) (*ListRobotsResponse, error)
-	// Reports the result of a scan: the full list of robots connected to the
-	// gateway. Robots seen for the first time get a robotId; known robots
-	// keep theirs. Robots missing from the list are kept. Sending the same
-	// list twice changes nothing.
-	//
-	// INVALID_ARGUMENT if a serial number is empty or appears twice.
-	ReportScan(ctx context.Context, in *ReportScanRequest, opts ...grpc.CallOption) (*ReportScanResponse, error)
-}
-
-type gatewayServiceClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewGatewayServiceClient(cc grpc.ClientConnInterface) GatewayServiceClient {
-	return &gatewayServiceClient{cc}
-}
-
-func (c *gatewayServiceClient) ListRobots(ctx context.Context, in *ListRobotsRequest, opts ...grpc.CallOption) (*ListRobotsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListRobotsResponse)
-	err := c.cc.Invoke(ctx, GatewayService_ListRobots_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *gatewayServiceClient) ReportScan(ctx context.Context, in *ReportScanRequest, opts ...grpc.CallOption) (*ReportScanResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ReportScanResponse)
-	err := c.cc.Invoke(ctx, GatewayService_ReportScan_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// GatewayServiceServer is the server API for GatewayService service.
-// All implementations must embed UnimplementedGatewayServiceServer
-// for forward compatibility.
-//
-// GatewayService keeps the system's list of a gateway's robots in step with
-// the gateway.
-type GatewayServiceServer interface {
-	// Returns the robots the system knows for this gateway, with their
-	// robotId. A gateway calls it after a restart, so every robot keeps its
-	// robotId.
-	ListRobots(context.Context, *ListRobotsRequest) (*ListRobotsResponse, error)
-	// Reports the result of a scan: the full list of robots connected to the
-	// gateway. Robots seen for the first time get a robotId; known robots
-	// keep theirs. Robots missing from the list are kept. Sending the same
-	// list twice changes nothing.
-	//
-	// INVALID_ARGUMENT if a serial number is empty or appears twice.
-	ReportScan(context.Context, *ReportScanRequest) (*ReportScanResponse, error)
-	mustEmbedUnimplementedGatewayServiceServer()
-}
-
-// UnimplementedGatewayServiceServer must be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedGatewayServiceServer struct{}
-
-func (UnimplementedGatewayServiceServer) ListRobots(context.Context, *ListRobotsRequest) (*ListRobotsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListRobots not implemented")
-}
-func (UnimplementedGatewayServiceServer) ReportScan(context.Context, *ReportScanRequest) (*ReportScanResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ReportScan not implemented")
-}
-func (UnimplementedGatewayServiceServer) mustEmbedUnimplementedGatewayServiceServer() {}
-func (UnimplementedGatewayServiceServer) testEmbeddedByValue()                        {}
-
-// UnsafeGatewayServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GatewayServiceServer will
-// result in compilation errors.
-type UnsafeGatewayServiceServer interface {
-	mustEmbedUnimplementedGatewayServiceServer()
-}
-
-func RegisterGatewayServiceServer(s grpc.ServiceRegistrar, srv GatewayServiceServer) {
-	// If the following call panics, it indicates UnimplementedGatewayServiceServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	s.RegisterService(&GatewayService_ServiceDesc, srv)
-}
-
-func _GatewayService_ListRobots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListRobotsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GatewayServiceServer).ListRobots(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GatewayService_ListRobots_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GatewayServiceServer).ListRobots(ctx, req.(*ListRobotsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GatewayService_ReportScan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReportScanRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GatewayServiceServer).ReportScan(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GatewayService_ReportScan_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GatewayServiceServer).ReportScan(ctx, req.(*ReportScanRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// GatewayService_ServiceDesc is the grpc.ServiceDesc for GatewayService service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var GatewayService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gateway.v1.GatewayService",
-	HandlerType: (*GatewayServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "ListRobots",
-			Handler:    _GatewayService_ListRobots_Handler,
-		},
-		{
-			MethodName: "ReportScan",
-			Handler:    _GatewayService_ReportScan_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "gateway/v1/gateway.proto",
-}
 
 const (
 	RobotService_ReportMeasurement_FullMethodName = "/gateway.v1.RobotService/ReportMeasurement"
@@ -369,5 +205,5 @@ var RobotService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "gateway/v1/gateway.proto",
+	Metadata: "gateway/v1/robot_service.proto",
 }

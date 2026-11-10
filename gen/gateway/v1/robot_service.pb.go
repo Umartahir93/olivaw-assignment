@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        (unknown)
-// source: gateway/v1/gateway.proto
+// source: gateway/v1/robot_service.proto
 
 package gatewayv1
 
@@ -63,11 +63,11 @@ func (x Activity) String() string {
 }
 
 func (Activity) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_gateway_proto_enumTypes[0].Descriptor()
+	return file_gateway_v1_robot_service_proto_enumTypes[0].Descriptor()
 }
 
 func (Activity) Type() protoreflect.EnumType {
-	return &file_gateway_v1_gateway_proto_enumTypes[0]
+	return &file_gateway_v1_robot_service_proto_enumTypes[0]
 }
 
 func (x Activity) Number() protoreflect.EnumNumber {
@@ -76,7 +76,7 @@ func (x Activity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Activity.Descriptor instead.
 func (Activity) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{0}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{0}
 }
 
 // Severity is how much the fault affects the robot's work.
@@ -115,11 +115,11 @@ func (x Fault_Severity) String() string {
 }
 
 func (Fault_Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_gateway_proto_enumTypes[1].Descriptor()
+	return file_gateway_v1_robot_service_proto_enumTypes[1].Descriptor()
 }
 
 func (Fault_Severity) Type() protoreflect.EnumType {
-	return &file_gateway_v1_gateway_proto_enumTypes[1]
+	return &file_gateway_v1_robot_service_proto_enumTypes[1]
 }
 
 func (x Fault_Severity) Number() protoreflect.EnumNumber {
@@ -128,235 +128,7 @@ func (x Fault_Severity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Fault_Severity.Descriptor instead.
 func (Fault_Severity) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{11, 0}
-}
-
-// ListRobotsRequest is empty; the gateway is identified by x-gateway-id.
-type ListRobotsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListRobotsRequest) Reset() {
-	*x = ListRobotsRequest{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListRobotsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListRobotsRequest) ProtoMessage() {}
-
-func (x *ListRobotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListRobotsRequest.ProtoReflect.Descriptor instead.
-func (*ListRobotsRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{0}
-}
-
-// ListRobotsResponse lists the gateway's robots.
-type ListRobotsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Robots        []*Robot               `protobuf:"bytes,1,rep,name=robots,proto3" json:"robots,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListRobotsResponse) Reset() {
-	*x = ListRobotsResponse{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListRobotsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListRobotsResponse) ProtoMessage() {}
-
-func (x *ListRobotsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListRobotsResponse.ProtoReflect.Descriptor instead.
-func (*ListRobotsResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ListRobotsResponse) GetRobots() []*Robot {
-	if x != nil {
-		return x.Robots
-	}
-	return nil
-}
-
-// ReportScanRequest carries the full list of robots a scan found.
-type ReportScanRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Serial numbers of all robots connected to the gateway.
-	SerialNumbers []string `protobuf:"bytes,1,rep,name=serial_numbers,json=serialNumbers,proto3" json:"serial_numbers,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReportScanRequest) Reset() {
-	*x = ReportScanRequest{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReportScanRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReportScanRequest) ProtoMessage() {}
-
-func (x *ReportScanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReportScanRequest.ProtoReflect.Descriptor instead.
-func (*ReportScanRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *ReportScanRequest) GetSerialNumbers() []string {
-	if x != nil {
-		return x.SerialNumbers
-	}
-	return nil
-}
-
-// ReportScanResponse returns every scanned robot with its robotId.
-type ReportScanResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Robots        []*Robot               `protobuf:"bytes,1,rep,name=robots,proto3" json:"robots,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReportScanResponse) Reset() {
-	*x = ReportScanResponse{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReportScanResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReportScanResponse) ProtoMessage() {}
-
-func (x *ReportScanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReportScanResponse.ProtoReflect.Descriptor instead.
-func (*ReportScanResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *ReportScanResponse) GetRobots() []*Robot {
-	if x != nil {
-		return x.Robots
-	}
-	return nil
-}
-
-// Robot is a robot known to the system.
-type Robot struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Assigned by the system; never changes.
-	RobotId string `protobuf:"bytes,1,opt,name=robot_id,json=robotId,proto3" json:"robot_id,omitempty"`
-	// Business key, from the robot's manufacturer.
-	SerialNumber  string `protobuf:"bytes,2,opt,name=serial_number,json=serialNumber,proto3" json:"serial_number,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Robot) Reset() {
-	*x = Robot{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Robot) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Robot) ProtoMessage() {}
-
-func (x *Robot) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Robot.ProtoReflect.Descriptor instead.
-func (*Robot) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *Robot) GetRobotId() string {
-	if x != nil {
-		return x.RobotId
-	}
-	return ""
-}
-
-func (x *Robot) GetSerialNumber() string {
-	if x != nil {
-		return x.SerialNumber
-	}
-	return ""
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{6, 0}
 }
 
 // ReportMeasurementRequest carries one measurement.
@@ -369,7 +141,7 @@ type ReportMeasurementRequest struct {
 
 func (x *ReportMeasurementRequest) Reset() {
 	*x = ReportMeasurementRequest{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[5]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -381,7 +153,7 @@ func (x *ReportMeasurementRequest) String() string {
 func (*ReportMeasurementRequest) ProtoMessage() {}
 
 func (x *ReportMeasurementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[5]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -394,7 +166,7 @@ func (x *ReportMeasurementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportMeasurementRequest.ProtoReflect.Descriptor instead.
 func (*ReportMeasurementRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{5}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ReportMeasurementRequest) GetMeasurement() *Measurement {
@@ -413,7 +185,7 @@ type ReportMeasurementResponse struct {
 
 func (x *ReportMeasurementResponse) Reset() {
 	*x = ReportMeasurementResponse{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[6]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -425,7 +197,7 @@ func (x *ReportMeasurementResponse) String() string {
 func (*ReportMeasurementResponse) ProtoMessage() {}
 
 func (x *ReportMeasurementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[6]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -438,7 +210,7 @@ func (x *ReportMeasurementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportMeasurementResponse.ProtoReflect.Descriptor instead.
 func (*ReportMeasurementResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{6}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{1}
 }
 
 // ReportFaultRequest carries one fault.
@@ -451,7 +223,7 @@ type ReportFaultRequest struct {
 
 func (x *ReportFaultRequest) Reset() {
 	*x = ReportFaultRequest{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[7]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -463,7 +235,7 @@ func (x *ReportFaultRequest) String() string {
 func (*ReportFaultRequest) ProtoMessage() {}
 
 func (x *ReportFaultRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[7]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -476,7 +248,7 @@ func (x *ReportFaultRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportFaultRequest.ProtoReflect.Descriptor instead.
 func (*ReportFaultRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{7}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ReportFaultRequest) GetFault() *Fault {
@@ -495,7 +267,7 @@ type ReportFaultResponse struct {
 
 func (x *ReportFaultResponse) Reset() {
 	*x = ReportFaultResponse{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[8]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +279,7 @@ func (x *ReportFaultResponse) String() string {
 func (*ReportFaultResponse) ProtoMessage() {}
 
 func (x *ReportFaultResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[8]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +292,7 @@ func (x *ReportFaultResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportFaultResponse.ProtoReflect.Descriptor instead.
 func (*ReportFaultResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{8}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{3}
 }
 
 // Measurement is a snapshot of one robot's state at one moment.
@@ -545,7 +317,7 @@ type Measurement struct {
 
 func (x *Measurement) Reset() {
 	*x = Measurement{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[9]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -557,7 +329,7 @@ func (x *Measurement) String() string {
 func (*Measurement) ProtoMessage() {}
 
 func (x *Measurement) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[9]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -570,7 +342,7 @@ func (x *Measurement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Measurement.ProtoReflect.Descriptor instead.
 func (*Measurement) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{9}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Measurement) GetRobotId() string {
@@ -631,7 +403,7 @@ type Position struct {
 
 func (x *Position) Reset() {
 	*x = Position{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[10]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -643,7 +415,7 @@ func (x *Position) String() string {
 func (*Position) ProtoMessage() {}
 
 func (x *Position) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[10]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -656,7 +428,7 @@ func (x *Position) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Position.ProtoReflect.Descriptor instead.
 func (*Position) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{10}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Position) GetMapId() string {
@@ -705,7 +477,7 @@ type Fault struct {
 
 func (x *Fault) Reset() {
 	*x = Fault{}
-	mi := &file_gateway_v1_gateway_proto_msgTypes[11]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -717,7 +489,7 @@ func (x *Fault) String() string {
 func (*Fault) ProtoMessage() {}
 
 func (x *Fault) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_proto_msgTypes[11]
+	mi := &file_gateway_v1_robot_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -730,7 +502,7 @@ func (x *Fault) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Fault.ProtoReflect.Descriptor instead.
 func (*Fault) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_proto_rawDescGZIP(), []int{11}
+	return file_gateway_v1_robot_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Fault) GetRobotId() string {
@@ -768,22 +540,12 @@ func (x *Fault) GetOccurredAt() *timestamppb.Timestamp {
 	return nil
 }
 
-var File_gateway_v1_gateway_proto protoreflect.FileDescriptor
+var File_gateway_v1_robot_service_proto protoreflect.FileDescriptor
 
-const file_gateway_v1_gateway_proto_rawDesc = "" +
+const file_gateway_v1_robot_service_proto_rawDesc = "" +
 	"\n" +
-	"\x18gateway/v1/gateway.proto\x12\n" +
-	"gateway.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x13\n" +
-	"\x11ListRobotsRequest\"?\n" +
-	"\x12ListRobotsResponse\x12)\n" +
-	"\x06robots\x18\x01 \x03(\v2\x11.gateway.v1.RobotR\x06robots\":\n" +
-	"\x11ReportScanRequest\x12%\n" +
-	"\x0eserial_numbers\x18\x01 \x03(\tR\rserialNumbers\"?\n" +
-	"\x12ReportScanResponse\x12)\n" +
-	"\x06robots\x18\x01 \x03(\v2\x11.gateway.v1.RobotR\x06robots\"G\n" +
-	"\x05Robot\x12\x19\n" +
-	"\brobot_id\x18\x01 \x01(\tR\arobotId\x12#\n" +
-	"\rserial_number\x18\x02 \x01(\tR\fserialNumber\"U\n" +
+	"\x1egateway/v1/robot_service.proto\x12\n" +
+	"gateway.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"U\n" +
 	"\x18ReportMeasurementRequest\x129\n" +
 	"\vmeasurement\x18\x01 \x01(\v2\x17.gateway.v1.MeasurementR\vmeasurement\"\x1b\n" +
 	"\x19ReportMeasurementResponse\"=\n" +
@@ -822,97 +584,81 @@ const file_gateway_v1_gateway_proto_rawDesc = "" +
 	"\rACTIVITY_IDLE\x10\x01\x12\x13\n" +
 	"\x0fACTIVITY_MOVING\x10\x02\x12\x15\n" +
 	"\x11ACTIVITY_CHARGING\x10\x03\x12\x12\n" +
-	"\x0eACTIVITY_ERROR\x10\x042\xaa\x01\n" +
-	"\x0eGatewayService\x12K\n" +
-	"\n" +
-	"ListRobots\x12\x1d.gateway.v1.ListRobotsRequest\x1a\x1e.gateway.v1.ListRobotsResponse\x12K\n" +
-	"\n" +
-	"ReportScan\x12\x1d.gateway.v1.ReportScanRequest\x1a\x1e.gateway.v1.ReportScanResponse2\xc0\x01\n" +
+	"\x0eACTIVITY_ERROR\x10\x042\xc0\x01\n" +
 	"\fRobotService\x12`\n" +
 	"\x11ReportMeasurement\x12$.gateway.v1.ReportMeasurementRequest\x1a%.gateway.v1.ReportMeasurementResponse\x12N\n" +
-	"\vReportFault\x12\x1e.gateway.v1.ReportFaultRequest\x1a\x1f.gateway.v1.ReportFaultResponseB\xaa\x01\n" +
-	"\x0ecom.gateway.v1B\fGatewayProtoP\x01ZAgithub.com/umartahir93/olivaw-assignment/gen/gateway/v1;gatewayv1\xa2\x02\x03GXX\xaa\x02\n" +
+	"\vReportFault\x12\x1e.gateway.v1.ReportFaultRequest\x1a\x1f.gateway.v1.ReportFaultResponseB\xaf\x01\n" +
+	"\x0ecom.gateway.v1B\x11RobotServiceProtoP\x01ZAgithub.com/umartahir93/olivaw-assignment/gen/gateway/v1;gatewayv1\xa2\x02\x03GXX\xaa\x02\n" +
 	"Gateway.V1\xca\x02\n" +
 	"Gateway\\V1\xe2\x02\x16Gateway\\V1\\GPBMetadata\xea\x02\vGateway::V1b\x06proto3"
 
 var (
-	file_gateway_v1_gateway_proto_rawDescOnce sync.Once
-	file_gateway_v1_gateway_proto_rawDescData []byte
+	file_gateway_v1_robot_service_proto_rawDescOnce sync.Once
+	file_gateway_v1_robot_service_proto_rawDescData []byte
 )
 
-func file_gateway_v1_gateway_proto_rawDescGZIP() []byte {
-	file_gateway_v1_gateway_proto_rawDescOnce.Do(func() {
-		file_gateway_v1_gateway_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_gateway_v1_gateway_proto_rawDesc), len(file_gateway_v1_gateway_proto_rawDesc)))
+func file_gateway_v1_robot_service_proto_rawDescGZIP() []byte {
+	file_gateway_v1_robot_service_proto_rawDescOnce.Do(func() {
+		file_gateway_v1_robot_service_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_gateway_v1_robot_service_proto_rawDesc), len(file_gateway_v1_robot_service_proto_rawDesc)))
 	})
-	return file_gateway_v1_gateway_proto_rawDescData
+	return file_gateway_v1_robot_service_proto_rawDescData
 }
 
-var file_gateway_v1_gateway_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gateway_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
-var file_gateway_v1_gateway_proto_goTypes = []any{
+var file_gateway_v1_robot_service_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_gateway_v1_robot_service_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_gateway_v1_robot_service_proto_goTypes = []any{
 	(Activity)(0),                     // 0: gateway.v1.Activity
 	(Fault_Severity)(0),               // 1: gateway.v1.Fault.Severity
-	(*ListRobotsRequest)(nil),         // 2: gateway.v1.ListRobotsRequest
-	(*ListRobotsResponse)(nil),        // 3: gateway.v1.ListRobotsResponse
-	(*ReportScanRequest)(nil),         // 4: gateway.v1.ReportScanRequest
-	(*ReportScanResponse)(nil),        // 5: gateway.v1.ReportScanResponse
-	(*Robot)(nil),                     // 6: gateway.v1.Robot
-	(*ReportMeasurementRequest)(nil),  // 7: gateway.v1.ReportMeasurementRequest
-	(*ReportMeasurementResponse)(nil), // 8: gateway.v1.ReportMeasurementResponse
-	(*ReportFaultRequest)(nil),        // 9: gateway.v1.ReportFaultRequest
-	(*ReportFaultResponse)(nil),       // 10: gateway.v1.ReportFaultResponse
-	(*Measurement)(nil),               // 11: gateway.v1.Measurement
-	(*Position)(nil),                  // 12: gateway.v1.Position
-	(*Fault)(nil),                     // 13: gateway.v1.Fault
-	(*timestamppb.Timestamp)(nil),     // 14: google.protobuf.Timestamp
+	(*ReportMeasurementRequest)(nil),  // 2: gateway.v1.ReportMeasurementRequest
+	(*ReportMeasurementResponse)(nil), // 3: gateway.v1.ReportMeasurementResponse
+	(*ReportFaultRequest)(nil),        // 4: gateway.v1.ReportFaultRequest
+	(*ReportFaultResponse)(nil),       // 5: gateway.v1.ReportFaultResponse
+	(*Measurement)(nil),               // 6: gateway.v1.Measurement
+	(*Position)(nil),                  // 7: gateway.v1.Position
+	(*Fault)(nil),                     // 8: gateway.v1.Fault
+	(*timestamppb.Timestamp)(nil),     // 9: google.protobuf.Timestamp
 }
-var file_gateway_v1_gateway_proto_depIdxs = []int32{
-	6,  // 0: gateway.v1.ListRobotsResponse.robots:type_name -> gateway.v1.Robot
-	6,  // 1: gateway.v1.ReportScanResponse.robots:type_name -> gateway.v1.Robot
-	11, // 2: gateway.v1.ReportMeasurementRequest.measurement:type_name -> gateway.v1.Measurement
-	13, // 3: gateway.v1.ReportFaultRequest.fault:type_name -> gateway.v1.Fault
-	12, // 4: gateway.v1.Measurement.position:type_name -> gateway.v1.Position
-	0,  // 5: gateway.v1.Measurement.activity:type_name -> gateway.v1.Activity
-	14, // 6: gateway.v1.Measurement.measured_at:type_name -> google.protobuf.Timestamp
-	1,  // 7: gateway.v1.Fault.severity:type_name -> gateway.v1.Fault.Severity
-	14, // 8: gateway.v1.Fault.occurred_at:type_name -> google.protobuf.Timestamp
-	2,  // 9: gateway.v1.GatewayService.ListRobots:input_type -> gateway.v1.ListRobotsRequest
-	4,  // 10: gateway.v1.GatewayService.ReportScan:input_type -> gateway.v1.ReportScanRequest
-	7,  // 11: gateway.v1.RobotService.ReportMeasurement:input_type -> gateway.v1.ReportMeasurementRequest
-	9,  // 12: gateway.v1.RobotService.ReportFault:input_type -> gateway.v1.ReportFaultRequest
-	3,  // 13: gateway.v1.GatewayService.ListRobots:output_type -> gateway.v1.ListRobotsResponse
-	5,  // 14: gateway.v1.GatewayService.ReportScan:output_type -> gateway.v1.ReportScanResponse
-	8,  // 15: gateway.v1.RobotService.ReportMeasurement:output_type -> gateway.v1.ReportMeasurementResponse
-	10, // 16: gateway.v1.RobotService.ReportFault:output_type -> gateway.v1.ReportFaultResponse
-	13, // [13:17] is the sub-list for method output_type
-	9,  // [9:13] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+var file_gateway_v1_robot_service_proto_depIdxs = []int32{
+	6, // 0: gateway.v1.ReportMeasurementRequest.measurement:type_name -> gateway.v1.Measurement
+	8, // 1: gateway.v1.ReportFaultRequest.fault:type_name -> gateway.v1.Fault
+	7, // 2: gateway.v1.Measurement.position:type_name -> gateway.v1.Position
+	0, // 3: gateway.v1.Measurement.activity:type_name -> gateway.v1.Activity
+	9, // 4: gateway.v1.Measurement.measured_at:type_name -> google.protobuf.Timestamp
+	1, // 5: gateway.v1.Fault.severity:type_name -> gateway.v1.Fault.Severity
+	9, // 6: gateway.v1.Fault.occurred_at:type_name -> google.protobuf.Timestamp
+	2, // 7: gateway.v1.RobotService.ReportMeasurement:input_type -> gateway.v1.ReportMeasurementRequest
+	4, // 8: gateway.v1.RobotService.ReportFault:input_type -> gateway.v1.ReportFaultRequest
+	3, // 9: gateway.v1.RobotService.ReportMeasurement:output_type -> gateway.v1.ReportMeasurementResponse
+	5, // 10: gateway.v1.RobotService.ReportFault:output_type -> gateway.v1.ReportFaultResponse
+	9, // [9:11] is the sub-list for method output_type
+	7, // [7:9] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
-func init() { file_gateway_v1_gateway_proto_init() }
-func file_gateway_v1_gateway_proto_init() {
-	if File_gateway_v1_gateway_proto != nil {
+func init() { file_gateway_v1_robot_service_proto_init() }
+func file_gateway_v1_robot_service_proto_init() {
+	if File_gateway_v1_robot_service_proto != nil {
 		return
 	}
-	file_gateway_v1_gateway_proto_msgTypes[9].OneofWrappers = []any{}
+	file_gateway_v1_robot_service_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_gateway_proto_rawDesc), len(file_gateway_v1_gateway_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_robot_service_proto_rawDesc), len(file_gateway_v1_robot_service_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   12,
+			NumMessages:   7,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   1,
 		},
-		GoTypes:           file_gateway_v1_gateway_proto_goTypes,
-		DependencyIndexes: file_gateway_v1_gateway_proto_depIdxs,
-		EnumInfos:         file_gateway_v1_gateway_proto_enumTypes,
-		MessageInfos:      file_gateway_v1_gateway_proto_msgTypes,
+		GoTypes:           file_gateway_v1_robot_service_proto_goTypes,
+		DependencyIndexes: file_gateway_v1_robot_service_proto_depIdxs,
+		EnumInfos:         file_gateway_v1_robot_service_proto_enumTypes,
+		MessageInfos:      file_gateway_v1_robot_service_proto_msgTypes,
 	}.Build()
-	File_gateway_v1_gateway_proto = out.File
-	file_gateway_v1_gateway_proto_goTypes = nil
-	file_gateway_v1_gateway_proto_depIdxs = nil
+	File_gateway_v1_robot_service_proto = out.File
+	file_gateway_v1_robot_service_proto_goTypes = nil
+	file_gateway_v1_robot_service_proto_depIdxs = nil
 }
