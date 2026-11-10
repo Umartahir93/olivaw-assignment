@@ -43,10 +43,12 @@ func scanned(id uuid.UUID, serial string, gatewayID uuid.UUID) domain.Robot {
 	}
 }
 
-// stored is a robot as the system stores it after its first scan.
+// stored is a robot as the system stores it after a scan: first seen and
+// last seen now.
 func stored(id uuid.UUID, serial string, gatewayID uuid.UUID) domain.Robot {
 	r := scanned(id, serial, gatewayID)
 	r.FirstSeenAt = now
+	r.LastSeenAt = ptr(now)
 	return r
 }
 
@@ -263,37 +265,86 @@ func TestGetRobot(t *testing.T) {
 	}
 }
 
-func TestMarkSeen(t *testing.T) {
-	seen := stored(robot1ID, "SN-1", gateway1ID)
-	seen.LastSeenAt = ptr(now)
+// measurement is a measurement of robot1, as a gateway sends it.
+func measurement(measuredAt time.Time) domain.Measurement {
+	return domain.Measurement{
+		RobotID:          robot1ID,
+		BatteryPct:       ptr(80.0),
+		Position:         &domain.Position{MapID: "floor-1", X: 1, Y: 2, HeadingRad: 0.5},
+		Activity:         domain.ActivityMoving,
+		ActiveFaultCodes: []string{},
+		MeasuredAt:       measuredAt,
+	}
+}
+
+// received is m as the system stores it: with the time it arrived.
+func received(m domain.Measurement) domain.Measurement {
+	m.ReceivedAt = now
+	return m
+}
+
+// fault is a fault of robot1, as a gateway sends it.
+func fault(code string, occurredAt time.Time) domain.Fault {
+	return domain.Fault{
+		RobotID:    robot1ID,
+		Code:       code,
+		Severity:   domain.SeverityCritical,
+		Message:    "motor overheated",
+		OccurredAt: occurredAt,
+	}
+}
+
+// receivedFault is f as the system stores it: with the time it arrived.
+func receivedFault(f domain.Fault) domain.Fault {
+	f.ReceivedAt = now
+	return f
+}
+
+func TestReportMeasurement(t *testing.T) {
+	measuredAt := now.Add(-time.Second)
 
 	tests := []struct {
-		name       string
-		gateway    uuid.UUID
-		robot      uuid.UUID
-		want       domain.Robot
-		wantStored []domain.Robot
-		wantErr    error
+		name        string
+		gateway     uuid.UUID
+		measurement domain.Measurement
+		earlier     []domain.Measurement // reported before the one under test
+		wantStored  []domain.Measurement
+		wantErr     error
 	}{
 		{
-			name:       "robot of this gateway",
-			gateway:    gateway1ID,
-			robot:      robot1ID,
-			want:       seen,
-			wantStored: []domain.Robot{seen},
+			name:        "robot of this gateway",
+			gateway:     gateway1ID,
+			measurement: measurement(measuredAt),
+			wantStored: []domain.Measurement{
+				received(measurement(measuredAt)),
+			},
 		},
 		{
-			name:       "robot of another gateway",
-			gateway:    gateway2ID,
-			robot:      robot1ID,
-			wantStored: []domain.Robot{stored(robot1ID, "SN-1", gateway1ID)},
-			wantErr:    domain.ErrOtherGateway,
+			name:        "measurement sent twice is stored once",
+			gateway:     gateway1ID,
+			measurement: measurement(measuredAt),
+			earlier: []domain.Measurement{
+				measurement(measuredAt),
+			},
+			wantStored: []domain.Measurement{
+				received(measurement(measuredAt)),
+			},
 		},
 		{
-			name:       "unknown robot",
-			gateway:    gateway1ID,
-			robot:      uuid.New(),
-			wantStored: []domain.Robot{stored(robot1ID, "SN-1", gateway1ID)},
+			name:        "robot of another gateway",
+			gateway:     gateway2ID,
+			measurement: measurement(measuredAt),
+			wantStored:  nil,
+			wantErr:     domain.ErrOtherGateway,
+		},
+		{
+			name:    "unknown robot",
+			gateway: gateway1ID,
+			measurement: domain.Measurement{
+				RobotID:    uuid.New(),
+				MeasuredAt: measuredAt,
+			},
+			wantStored: nil,
 			wantErr:    domain.ErrNotFound,
 		},
 	}
@@ -302,17 +353,184 @@ func TestMarkSeen(t *testing.T) {
 			repo := &robot.FakeRepository{}
 			s := robot.NewService(repo)
 			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
+			for _, m := range tt.earlier {
+				if err := s.ReportMeasurement(context.Background(), gateway1ID, m); err != nil {
+					t.Fatalf("earlier measurement: %v", err)
+				}
+			}
 
-			got, err := s.MarkSeen(context.Background(), tt.gateway, tt.robot)
+			err := s.ReportMeasurement(context.Background(), tt.gateway, tt.measurement)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(tt.wantStored, repo.Measurements, approxTime); diff != "" {
+				t.Errorf("stored measurements mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestReportFault(t *testing.T) {
+	occurredAt := now.Add(-time.Second)
+
+	tests := []struct {
+		name       string
+		gateway    uuid.UUID
+		fault      domain.Fault
+		earlier    []domain.Fault // reported before the one under test
+		wantStored []domain.Fault
+		wantErr    error
+	}{
+		{
+			name:    "robot of this gateway",
+			gateway: gateway1ID,
+			fault:   fault("E_MOTOR", occurredAt),
+			wantStored: []domain.Fault{
+				receivedFault(fault("E_MOTOR", occurredAt)),
+			},
+		},
+		{
+			name:    "fault sent twice is stored once",
+			gateway: gateway1ID,
+			fault:   fault("E_MOTOR", occurredAt),
+			earlier: []domain.Fault{
+				fault("E_MOTOR", occurredAt),
+			},
+			wantStored: []domain.Fault{
+				receivedFault(fault("E_MOTOR", occurredAt)),
+			},
+		},
+		{
+			name:    "same code at another time is another fault",
+			gateway: gateway1ID,
+			fault:   fault("E_MOTOR", occurredAt),
+			earlier: []domain.Fault{
+				fault("E_MOTOR", occurredAt.Add(-time.Hour)),
+			},
+			wantStored: []domain.Fault{
+				receivedFault(fault("E_MOTOR", occurredAt.Add(-time.Hour))),
+				receivedFault(fault("E_MOTOR", occurredAt)),
+			},
+		},
+		{
+			name:       "robot of another gateway",
+			gateway:    gateway2ID,
+			fault:      fault("E_MOTOR", occurredAt),
+			wantStored: nil,
+			wantErr:    domain.ErrOtherGateway,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &robot.FakeRepository{}
+			s := robot.NewService(repo)
+			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
+			for _, f := range tt.earlier {
+				if err := s.ReportFault(context.Background(), gateway1ID, f); err != nil {
+					t.Fatalf("earlier fault: %v", err)
+				}
+			}
+
+			err := s.ReportFault(context.Background(), tt.gateway, tt.fault)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(tt.wantStored, repo.Faults, approxTime); diff != "" {
+				t.Errorf("stored faults mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestListMeasurements(t *testing.T) {
+	from := now.Add(-time.Hour)
+	to := now
+
+	tests := []struct {
+		name    string
+		robot   uuid.UUID
+		want    []domain.Measurement
+		wantErr error
+	}{
+		{
+			name:  "only the range",
+			robot: robot1ID,
+			want: []domain.Measurement{
+				received(measurement(from)),
+				received(measurement(to.Add(-time.Minute))),
+			},
+		},
+		{
+			name:    "unknown robot",
+			robot:   uuid.New(),
+			wantErr: domain.ErrNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := robot.NewService(&robot.FakeRepository{})
+			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
+			// One before the range, two in it, one at its exclusive end.
+			for _, at := range []time.Time{from.Add(-time.Minute), from, to.Add(-time.Minute), to} {
+				if err := s.ReportMeasurement(context.Background(), gateway1ID, measurement(at)); err != nil {
+					t.Fatalf("report measurement: %v", err)
+				}
+			}
+
+			got, err := s.ListMeasurements(context.Background(), tt.robot, from, to)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
 			if diff := cmp.Diff(tt.want, got, approxTime); diff != "" {
-				t.Errorf("robot mismatch (-want +got):\n%s", diff)
+				t.Errorf("measurements mismatch (-want +got):\n%s", diff)
 			}
-			if diff := cmp.Diff(tt.wantStored, repo.Robots, approxTime); diff != "" {
-				t.Errorf("stored robots mismatch (-want +got):\n%s", diff)
+		})
+	}
+}
+
+func TestListFaults(t *testing.T) {
+	from := now.Add(-time.Hour)
+	to := now
+
+	tests := []struct {
+		name    string
+		robot   uuid.UUID
+		want    []domain.Fault
+		wantErr error
+	}{
+		{
+			name:  "only the range",
+			robot: robot1ID,
+			want: []domain.Fault{
+				receivedFault(fault("E_MOTOR", from)),
+			},
+		},
+		{
+			name:    "unknown robot",
+			robot:   uuid.New(),
+			wantErr: domain.ErrNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := robot.NewService(&robot.FakeRepository{})
+			scan(t, s, scanned(robot1ID, "SN-1", gateway1ID))
+			for _, f := range []domain.Fault{fault("E_OLD", from.Add(-time.Minute)), fault("E_MOTOR", from)} {
+				if err := s.ReportFault(context.Background(), gateway1ID, f); err != nil {
+					t.Fatalf("report fault: %v", err)
+				}
+			}
+
+			got, err := s.ListFaults(context.Background(), tt.robot, from, to)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(tt.want, got, approxTime); diff != "" {
+				t.Errorf("faults mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

@@ -1122,7 +1122,8 @@ type Robot struct {
 	// When a scan first reported the robot.
 	FirstSeenAt  time.Time    `json:"firstSeenAt"`
 	Connectivity Connectivity `json:"connectivity"`
-	// When the robot's last measurement arrived; null if never.
+	// When the robot was last seen: when its newest measurement arrived, or when a scan last reported it,
+	// whichever is later. Null if neither happened.
 	LastSeenAt OptNilDateTime `json:"lastSeenAt"`
 	// The newest measurement; null if none yet.
 	Latest OptNilMeasurement `json:"latest"`

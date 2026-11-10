@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -57,20 +58,48 @@ func TestReportMeasurement(t *testing.T) {
 		measurement *gatewayv1.Measurement
 		robots      *robotgrpc.FakeRobotService
 		wantCode    codes.Code
-		wantSeen    []uuid.UUID
+		wantStored  []domain.Measurement
 	}{
 		{
-			name: "valid measurement marks the robot seen",
+			name: "valid measurement is stored",
+			ctx:  asGateway(registered.ID.String()),
+			measurement: &gatewayv1.Measurement{
+				RobotId:          robotID.String(),
+				BatteryPct:       proto.Float64(80),
+				Position:         &gatewayv1.Position{MapId: "floor-1", X: 1, Y: 2, HeadingRad: 0.5},
+				Activity:         gatewayv1.Activity_ACTIVITY_MOVING,
+				ActiveFaultCodes: []string{"E_LIDAR"},
+				MeasuredAt:       measuredAt,
+			},
+			robots:   &robotgrpc.FakeRobotService{},
+			wantCode: codes.OK,
+			wantStored: []domain.Measurement{
+				{
+					RobotID:          robotID,
+					BatteryPct:       proto.Float64(80),
+					Position:         &domain.Position{MapID: "floor-1", X: 1, Y: 2, HeadingRad: 0.5},
+					Activity:         domain.ActivityMoving,
+					ActiveFaultCodes: []string{"E_LIDAR"},
+					MeasuredAt:       measuredAt.AsTime(),
+				},
+			},
+		},
+		{
+			name: "measurement without optional values is stored",
 			ctx:  asGateway(registered.ID.String()),
 			measurement: &gatewayv1.Measurement{
 				RobotId:    robotID.String(),
-				BatteryPct: proto.Float64(80),
-				Position:   &gatewayv1.Position{MapId: "floor-1", X: 1, Y: 2, HeadingRad: 0.5},
 				MeasuredAt: measuredAt,
 			},
 			robots:   &robotgrpc.FakeRobotService{},
 			wantCode: codes.OK,
-			wantSeen: []uuid.UUID{robotID},
+			wantStored: []domain.Measurement{
+				{
+					RobotID:    robotID,
+					Activity:   domain.ActivityUnknown,
+					MeasuredAt: measuredAt.AsTime(),
+				},
+			},
 		},
 		{
 			name:        "measurement missing",
@@ -185,8 +214,8 @@ func TestReportMeasurement(t *testing.T) {
 			if code := status.Code(err); code != tt.wantCode {
 				t.Fatalf("code = %s, want %s (error: %v)", code, tt.wantCode, err)
 			}
-			if diff := cmp.Diff(tt.wantSeen, tt.robots.Seen); diff != "" {
-				t.Errorf("robots marked seen mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantStored, tt.robots.Measurements, cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("stored measurements mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -194,25 +223,34 @@ func TestReportMeasurement(t *testing.T) {
 
 func TestReportFault(t *testing.T) {
 	tests := []struct {
-		name     string
-		ctx      context.Context
-		fault    *gatewayv1.Fault
-		robots   *robotgrpc.FakeRobotService
-		wantCode codes.Code
-		wantSeen []uuid.UUID
+		name       string
+		ctx        context.Context
+		fault      *gatewayv1.Fault
+		robots     *robotgrpc.FakeRobotService
+		wantCode   codes.Code
+		wantStored []domain.Fault
 	}{
 		{
-			name: "valid fault marks the robot seen",
+			name: "valid fault is stored",
 			ctx:  asGateway(registered.ID.String()),
 			fault: &gatewayv1.Fault{
 				RobotId:    robotID.String(),
 				Code:       "E_MOTOR",
 				Severity:   gatewayv1.Fault_SEVERITY_CRITICAL,
+				Message:    "motor overheated",
 				OccurredAt: measuredAt,
 			},
 			robots:   &robotgrpc.FakeRobotService{},
 			wantCode: codes.OK,
-			wantSeen: []uuid.UUID{robotID},
+			wantStored: []domain.Fault{
+				{
+					RobotID:    robotID,
+					Code:       "E_MOTOR",
+					Severity:   domain.SeverityCritical,
+					Message:    "motor overheated",
+					OccurredAt: measuredAt.AsTime(),
+				},
+			},
 		},
 		{
 			name:     "fault missing",
@@ -262,8 +300,8 @@ func TestReportFault(t *testing.T) {
 			if code := status.Code(err); code != tt.wantCode {
 				t.Fatalf("code = %s, want %s (error: %v)", code, tt.wantCode, err)
 			}
-			if diff := cmp.Diff(tt.wantSeen, tt.robots.Seen); diff != "" {
-				t.Errorf("robots marked seen mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantStored, tt.robots.Faults); diff != "" {
+				t.Errorf("stored faults mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

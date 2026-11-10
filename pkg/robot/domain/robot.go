@@ -24,8 +24,13 @@ type Robot struct {
 	ID           uuid.UUID
 	SerialNumber string // business key
 	GatewayID    uuid.UUID
-	FirstSeenAt  time.Time  // when a scan first reported it
-	LastSeenAt   *time.Time // nil until its first measurement
+	FirstSeenAt  time.Time // when a scan first reported it
+	// LastSeenAt is when its newest measurement arrived, or when a scan last
+	// reported it, whichever is later; nil if neither happened.
+	LastSeenAt *time.Time
+	// Latest is its newest measurement; nil if none arrived yet. It is read
+	// with the robot and never stored with it.
+	Latest *Measurement
 }
 
 // Connectivity derives the robot's connectivity at now, by the same rules

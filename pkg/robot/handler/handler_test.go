@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
 
 	fleetv1 "github.com/umartahir93/olivaw-assignment/gen/fleet/v1"
@@ -92,6 +93,28 @@ func TestGetRobot(t *testing.T) {
 			}),
 		},
 		{
+			name: "robot with its newest measurement",
+			id:   robot1.ID,
+			robots: &robothandler.FakeRobotService{
+				Robots: []domain.Robot{withLatest(robot1, fullMeasurement)},
+			},
+			want: &fleetv1.Robot{
+				RobotId:      robot1.ID,
+				SerialNumber: "SN-1",
+				GatewayId:    gatewayID,
+				FirstSeenAt:  firstSeenAt,
+				Connectivity: fleetv1.ConnectivityOnline,
+				LastSeenAt:   fleetv1.NewOptNilDateTime(recently),
+				Latest: fleetv1.NewOptNilMeasurement(fleetv1.Measurement{
+					BatteryPct:       fleetv1.NewOptNilFloat64(80),
+					Position:         fleetv1.NewOptNilPosition(fleetv1.Position{MapId: "floor-1", X: 1, Y: 2, HeadingRad: 0.5}),
+					Activity:         fleetv1.ActivityMoving,
+					ActiveFaultCodes: []string{"E_LIDAR"},
+					MeasuredAt:       rangeFrom,
+				}),
+			},
+		},
+		{
 			name:   "unknown robot",
 			id:     unknownID,
 			robots: robots(),
@@ -123,21 +146,152 @@ func TestGetRobot(t *testing.T) {
 	}
 }
 
+var (
+	rangeFrom = time.Date(2026, 11, 10, 8, 0, 0, 0, time.UTC)
+	rangeTo   = rangeFrom.Add(time.Hour)
+
+	// A measurement with every value reported, and one with none of the
+	// optional ones.
+	fullMeasurement = domain.Measurement{
+		RobotID:          robot1.ID,
+		BatteryPct:       ptr(80.0),
+		Position:         &domain.Position{MapID: "floor-1", X: 1, Y: 2, HeadingRad: 0.5},
+		Activity:         domain.ActivityMoving,
+		ActiveFaultCodes: []string{"E_LIDAR"},
+		MeasuredAt:       rangeFrom,
+	}
+	bareMeasurement = domain.Measurement{
+		RobotID:    robot1.ID,
+		Activity:   domain.ActivityUnknown,
+		MeasuredAt: rangeFrom.Add(time.Second),
+	}
+	robot1Fault = domain.Fault{
+		RobotID:    robot1.ID,
+		Code:       "E_MOTOR",
+		Severity:   domain.SeverityCritical,
+		Message:    "motor overheated",
+		OccurredAt: rangeFrom,
+	}
+
+	badRange = fleetv1.Problem{
+		Title:  "Bad Request",
+		Status: http.StatusBadRequest,
+		Detail: fleetv1.NewOptString("the time range must not be longer than 24 hours"),
+	}
+	reversedRange = fleetv1.Problem{
+		Title:  "Bad Request",
+		Status: http.StatusBadRequest,
+		Detail: fleetv1.NewOptString("to must not be before from"),
+	}
+)
+
+// timeRangeCase is a from / to pair and the range the service should get.
+type timeRangeCase struct {
+	name     string
+	from, to fleetv1.OptDateTime
+	wantFrom time.Time // zero: to minus 24 hours
+	wantTo   time.Time // zero: now
+}
+
+// timeRangeCases are the ranges both lists accept.
+var timeRangeCases = []timeRangeCase{
+	{
+		name:     "from and to",
+		from:     fleetv1.NewOptDateTime(rangeFrom),
+		to:       fleetv1.NewOptDateTime(rangeTo),
+		wantFrom: rangeFrom,
+		wantTo:   rangeTo,
+	},
+	{
+		name:     "only to: the 24 hours before it",
+		to:       fleetv1.NewOptDateTime(rangeTo),
+		wantFrom: rangeTo.Add(-24 * time.Hour),
+		wantTo:   rangeTo,
+	},
+	{
+		name: "neither: the last 24 hours",
+	},
+}
+
+// checkRange checks the range the service got against tc, with now for
+// what tc leaves out.
+func checkRange(t *testing.T, tc timeRangeCase, from, to time.Time) {
+	t.Helper()
+	wantTo := tc.wantTo
+	if wantTo.IsZero() {
+		wantTo = time.Now()
+	}
+	wantFrom := tc.wantFrom
+	if wantFrom.IsZero() {
+		wantFrom = wantTo.Add(-24 * time.Hour)
+	}
+	approx := cmpopts.EquateApproxTime(time.Second)
+	if diff := cmp.Diff(wantFrom, from, approx); diff != "" {
+		t.Errorf("from mismatch (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(wantTo, to, approx); diff != "" {
+		t.Errorf("to mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestListRobotMeasurements(t *testing.T) {
 	tests := []struct {
-		name    string
-		id      uuid.UUID
-		robots  *robothandler.FakeRobotService
-		want    fleetv1.ListRobotMeasurementsRes
-		wantErr error
+		name     string
+		id       uuid.UUID
+		from, to fleetv1.OptDateTime
+		robots   *robothandler.FakeRobotService
+		want     fleetv1.ListRobotMeasurementsRes
+		wantErr  error
 	}{
 		{
-			name:   "known robot",
-			id:     robot1.ID,
+			name: "stored measurements",
+			id:   robot1.ID,
+			robots: &robothandler.FakeRobotService{
+				Robots:       []domain.Robot{robot1},
+				Measurements: []domain.Measurement{fullMeasurement, bareMeasurement},
+			},
+			want: &fleetv1.MeasurementList{
+				Items: []fleetv1.Measurement{
+					{
+						BatteryPct:       fleetv1.NewOptNilFloat64(80),
+						Position:         fleetv1.NewOptNilPosition(fleetv1.Position{MapId: "floor-1", X: 1, Y: 2, HeadingRad: 0.5}),
+						Activity:         fleetv1.ActivityMoving,
+						ActiveFaultCodes: []string{"E_LIDAR"},
+						MeasuredAt:       rangeFrom,
+					},
+					{
+						BatteryPct:       nullFloat(),
+						Position:         nullPosition(),
+						Activity:         fleetv1.ActivityUnknown,
+						ActiveFaultCodes: []string{},
+						MeasuredAt:       rangeFrom.Add(time.Second),
+					},
+				},
+			},
+		},
+		{
+			name:   "no measurements",
+			id:     robot2.ID,
 			robots: robots(),
 			want: &fleetv1.MeasurementList{
 				Items: []fleetv1.Measurement{},
 			},
+		},
+		{
+			name:   "range longer than 24 hours",
+			id:     robot1.ID,
+			from:   fleetv1.NewOptDateTime(rangeFrom),
+			to:     fleetv1.NewOptDateTime(rangeFrom.Add(25 * time.Hour)),
+			robots: robots(),
+			want:   ptr(fleetv1.ListRobotMeasurementsBadRequest(badRange)),
+		},
+		{
+			name:   "to before from",
+			id:     robot1.ID,
+			from:   fleetv1.NewOptDateTime(rangeTo),
+			to:     fleetv1.NewOptDateTime(rangeFrom),
+			robots: robots(),
+			want:   ptr(fleetv1.ListRobotMeasurementsBadRequest(reversedRange)),
 		},
 		{
 			name:   "unknown robot",
@@ -156,7 +310,7 @@ func TestListRobotMeasurements(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := fleetv1.ListRobotMeasurementsParams{RobotId: tt.id}
+			params := fleetv1.ListRobotMeasurementsParams{RobotId: tt.id, From: tt.from, To: tt.to}
 
 			got, err := robothandler.NewHandler(tt.robots).ListRobotMeasurements(context.Background(), params)
 
@@ -175,19 +329,46 @@ func TestListRobotMeasurements(t *testing.T) {
 
 func TestListRobotFaults(t *testing.T) {
 	tests := []struct {
-		name    string
-		id      uuid.UUID
-		robots  *robothandler.FakeRobotService
-		want    fleetv1.ListRobotFaultsRes
-		wantErr error
+		name     string
+		id       uuid.UUID
+		from, to fleetv1.OptDateTime
+		robots   *robothandler.FakeRobotService
+		want     fleetv1.ListRobotFaultsRes
+		wantErr  error
 	}{
 		{
-			name:   "known robot",
-			id:     robot1.ID,
+			name: "stored faults",
+			id:   robot1.ID,
+			robots: &robothandler.FakeRobotService{
+				Robots: []domain.Robot{robot1},
+				Faults: []domain.Fault{robot1Fault},
+			},
+			want: &fleetv1.FaultList{
+				Items: []fleetv1.Fault{
+					{
+						Code:       "E_MOTOR",
+						Severity:   fleetv1.FaultSeverityCritical,
+						Message:    "motor overheated",
+						OccurredAt: rangeFrom,
+					},
+				},
+			},
+		},
+		{
+			name:   "no faults",
+			id:     robot2.ID,
 			robots: robots(),
 			want: &fleetv1.FaultList{
 				Items: []fleetv1.Fault{},
 			},
+		},
+		{
+			name:   "range longer than 24 hours",
+			id:     robot1.ID,
+			from:   fleetv1.NewOptDateTime(rangeFrom),
+			to:     fleetv1.NewOptDateTime(rangeFrom.Add(25 * time.Hour)),
+			robots: robots(),
+			want:   ptr(fleetv1.ListRobotFaultsBadRequest(badRange)),
 		},
 		{
 			name:   "unknown robot",
@@ -206,7 +387,7 @@ func TestListRobotFaults(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			params := fleetv1.ListRobotFaultsParams{RobotId: tt.id}
+			params := fleetv1.ListRobotFaultsParams{RobotId: tt.id, From: tt.from, To: tt.to}
 
 			got, err := robothandler.NewHandler(tt.robots).ListRobotFaults(context.Background(), params)
 
@@ -223,6 +404,45 @@ func TestListRobotFaults(t *testing.T) {
 	}
 }
 
+func TestTimeRange(t *testing.T) {
+	for _, tc := range timeRangeCases {
+		t.Run("measurements, "+tc.name, func(t *testing.T) {
+			robots := robots()
+			params := fleetv1.ListRobotMeasurementsParams{RobotId: robot1.ID, From: tc.from, To: tc.to}
+
+			if _, err := robothandler.NewHandler(robots).ListRobotMeasurements(context.Background(), params); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			checkRange(t, tc, robots.From, robots.To)
+		})
+		t.Run("faults, "+tc.name, func(t *testing.T) {
+			robots := robots()
+			params := fleetv1.ListRobotFaultsParams{RobotId: robot1.ID, From: tc.from, To: tc.to}
+
+			if _, err := robothandler.NewHandler(robots).ListRobotFaults(context.Background(), params); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			checkRange(t, tc, robots.From, robots.To)
+		})
+	}
+}
+
+// nullFloat returns a null number.
+func nullFloat() fleetv1.OptNilFloat64 {
+	var f fleetv1.OptNilFloat64
+	f.SetToNull()
+	return f
+}
+
+// nullPosition returns a null position.
+func nullPosition() fleetv1.OptNilPosition {
+	var p fleetv1.OptNilPosition
+	p.SetToNull()
+	return p
+}
+
 func ptr[T any](v T) *T {
 	return &v
 }
@@ -234,7 +454,13 @@ func null() fleetv1.OptNilDateTime {
 	return t
 }
 
-// robotREST completes r with a null latest measurement; none are stored yet.
+// withLatest returns r with m as its newest measurement.
+func withLatest(r domain.Robot, m domain.Measurement) domain.Robot {
+	r.Latest = &m
+	return r
+}
+
+// robotREST completes r with a null latest measurement.
 func robotREST(r fleetv1.Robot) *fleetv1.Robot {
 	r.Latest.SetToNull()
 	return &r

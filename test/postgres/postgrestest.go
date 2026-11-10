@@ -40,7 +40,7 @@ func Open(t *testing.T) *sqlx.DB {
 // Reset empties every table, so each test case starts from nothing.
 func Reset(t *testing.T, db *sqlx.DB) {
 	t.Helper()
-	if _, err := db.ExecContext(context.Background(), `TRUNCATE robots, gateways`); err != nil {
+	if _, err := db.ExecContext(context.Background(), `TRUNCATE measurements, faults, robots, gateways`); err != nil {
 		t.Fatalf("reset test database: %v", err)
 	}
 }

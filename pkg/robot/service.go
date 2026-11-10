@@ -1,6 +1,6 @@
 // Package robot is the service layer for robots: it discovers them from
-// their gateway's scans, records when they report and answers questions
-// about them.
+// their gateway's scans, stores their measurements and faults, and answers
+// questions about them.
 //
 // Input is validated by the handlers; this package applies business rules.
 package robot
@@ -14,15 +14,23 @@ import (
 	"github.com/umartahir93/olivaw-assignment/pkg/robot/domain"
 )
 
-// Repository stores robots. Lists are ordered oldest first by FirstSeenAt.
-// It reports an unknown robot as domain.ErrNotFound. Any other error means
-// the storage itself failed.
+// Repository stores robots, their measurements and their faults. Robot
+// lists are ordered oldest first by FirstSeenAt; measurement and fault lists
+// by their time, and cover from (inclusive) to to (exclusive). A robot's
+// LastSeenAt is the later of when a scan last reported it and when its
+// newest measurement arrived. Storing a measurement or fault that is already
+// stored changes nothing. It reports an unknown robot as domain.ErrNotFound.
+// Any other error means the storage itself failed.
 type Repository interface {
 	CreateRobots(ctx context.Context, robots []domain.Robot) ([]domain.Robot, error)
 	GetRobot(ctx context.Context, id uuid.UUID) (domain.Robot, error)
 	GetRobotsBySerial(ctx context.Context, serialNumbers []string) ([]domain.Robot, error)
 	ListRobots(ctx context.Context, gatewayID uuid.UUID) ([]domain.Robot, error)
 	UpdateRobotLastSeen(ctx context.Context, id uuid.UUID, at time.Time) (domain.Robot, error)
+	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	ListMeasurements(ctx context.Context, robotID uuid.UUID, from, to time.Time) ([]domain.Measurement, error)
+	CreateFault(ctx context.Context, f domain.Fault) (domain.Fault, error)
+	ListFaults(ctx context.Context, robotID uuid.UUID, from, to time.Time) ([]domain.Fault, error)
 }
 
 // Service handles robots.
@@ -37,7 +45,8 @@ func NewService(repo Repository) *Service {
 
 // ReportScan takes the robots a gateway's scan found, each with an ID, its serial number and the gateway's ID, and returns them as the system
 // knows them, in the same order. Robots seen for the first time are stored with the given ID; known robots keep their stored ID; robots
-// missing from the scan are left as they are. Reporting the same scan twice changes nothing.
+// missing from the scan are left as they are. Every scanned robot counts as
+// seen now; after that, its measurements keep it seen.
 //
 // It returns domain.ErrOtherGateway if a scanned robot belongs to another
 // gateway, and stores nothing in that case.
@@ -56,15 +65,24 @@ func (s *Service) ReportScan(ctx context.Context, scanned []domain.Robot) ([]dom
 	}
 
 	now := time.Now().UTC()
-	var newRobots []domain.Robot
+	var newRobots, knownRobots []domain.Robot
 	for _, r := range scanned {
 		k, ok := bySerial[r.SerialNumber]
 		switch {
 		case ok && k.GatewayID != r.GatewayID:
 			return nil, domain.ErrOtherGateway
-		case !ok:
-			newRobots = append(newRobots, domain.Robot{ID: r.ID, SerialNumber: r.SerialNumber, GatewayID: r.GatewayID, FirstSeenAt: now})
+		case ok:
+			knownRobots = append(knownRobots, k)
+		default:
+			newRobots = append(newRobots, domain.Robot{ID: r.ID, SerialNumber: r.SerialNumber, GatewayID: r.GatewayID, FirstSeenAt: now, LastSeenAt: &now})
 		}
+	}
+	for _, k := range knownRobots {
+		seen, err := s.repo.UpdateRobotLastSeen(ctx, k.ID, now)
+		if err != nil {
+			return nil, err
+		}
+		bySerial[seen.SerialNumber] = seen
 	}
 	if len(newRobots) > 0 {
 		var created []domain.Robot
@@ -96,17 +114,60 @@ func (s *Service) GetRobot(ctx context.Context, id uuid.UUID) (domain.Robot, err
 	return s.repo.GetRobot(ctx, id)
 }
 
-// MarkSeen marks a robot as seen now, which makes it online; data from the
-// robot arriving through the gateway gatewayID counts. It returns
-// domain.ErrNotFound for an unknown robot and domain.ErrOtherGateway if the
-// robot belongs to another gateway.
-func (s *Service) MarkSeen(ctx context.Context, gatewayID, robotID uuid.UUID) (domain.Robot, error) {
+// ReportMeasurement stores a measurement the gateway gatewayID sent for one
+// of its robots, with the time it arrived. A measurement already stored is
+// not stored again. It returns domain.ErrNotFound for an unknown robot and
+// domain.ErrOtherGateway if the robot belongs to another gateway.
+func (s *Service) ReportMeasurement(ctx context.Context, gatewayID uuid.UUID, m domain.Measurement) error {
+	if err := s.checkGateway(ctx, gatewayID, m.RobotID); err != nil {
+		return err
+	}
+	m.ReceivedAt = time.Now().UTC()
+	_, err := s.repo.CreateMeasurement(ctx, m)
+	return err
+}
+
+// ReportFault stores a fault the gateway gatewayID sent for one of its
+// robots, with the time it arrived. A fault already stored is not stored
+// again. It returns the same errors as ReportMeasurement.
+func (s *Service) ReportFault(ctx context.Context, gatewayID uuid.UUID, f domain.Fault) error {
+	if err := s.checkGateway(ctx, gatewayID, f.RobotID); err != nil {
+		return err
+	}
+	f.ReceivedAt = time.Now().UTC()
+	_, err := s.repo.CreateFault(ctx, f)
+	return err
+}
+
+// ListMeasurements returns a robot's measurements taken from from
+// (inclusive) to to (exclusive), oldest first, or domain.ErrNotFound for an
+// unknown robot. The caller limits the range (domain.MaxTimeRange).
+func (s *Service) ListMeasurements(ctx context.Context, robotID uuid.UUID, from, to time.Time) ([]domain.Measurement, error) {
+	if _, err := s.repo.GetRobot(ctx, robotID); err != nil {
+		return nil, err
+	}
+	return s.repo.ListMeasurements(ctx, robotID, from, to)
+}
+
+// ListFaults returns a robot's faults that occurred from from (inclusive)
+// to to (exclusive), oldest first, or domain.ErrNotFound for an unknown
+// robot. The caller limits the range (domain.MaxTimeRange).
+func (s *Service) ListFaults(ctx context.Context, robotID uuid.UUID, from, to time.Time) ([]domain.Fault, error) {
+	if _, err := s.repo.GetRobot(ctx, robotID); err != nil {
+		return nil, err
+	}
+	return s.repo.ListFaults(ctx, robotID, from, to)
+}
+
+// checkGateway returns domain.ErrNotFound for an unknown robot and
+// domain.ErrOtherGateway if the robot does not belong to gatewayID.
+func (s *Service) checkGateway(ctx context.Context, gatewayID, robotID uuid.UUID) error {
 	stored, err := s.repo.GetRobot(ctx, robotID)
 	if err != nil {
-		return domain.Robot{}, err
+		return err
 	}
 	if stored.GatewayID != gatewayID {
-		return domain.Robot{}, domain.ErrOtherGateway
+		return domain.ErrOtherGateway
 	}
-	return s.repo.UpdateRobotLastSeen(ctx, robotID, time.Now().UTC())
+	return nil
 }
