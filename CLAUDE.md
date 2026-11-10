@@ -36,6 +36,35 @@ are used the same way in docs, contracts and code. Keep it that way.
 | `test/postgres/` | test database setup (SQL for the container, Go helper) |
 | `vendor/` | vendored dependencies (`make vendor` after changing go.mod) |
 
+## Database
+
+PostgreSQL with the TimescaleDB extension, migrated by goose at server
+start (`migrations/`, embedded in the binary). Two databases in Docker:
+`fleet` for the server (`DATABASE_URL`) and `fleet_test` for integration
+tests (`TEST_DATABASE_URL`; created by `test/postgres/01-test-database.sql`,
+emptied before every test case).
+
+| Table | Kind | Key | Notes |
+|---|---|---|---|
+| `gateways` | plain | `id` (uuid) | `serial_number` unique; `last_seen_at` set on every gRPC call from the gateway |
+| `robots` | plain | `id` (uuid) | `serial_number` unique; `gateway_id` → `gateways`; `last_seen_at` set when a scan reports the robot; index `(gateway_id, first_seen_at)` |
+| `measurements` | **TimescaleDB hypertable** on `measured_at` | `(robot_id, measured_at)` | `robot_id` → `robots`; `received_at` is the server's clock; position columns all null when not reported; `active_fault_codes text[]` |
+| `faults` | plain | `(robot_id, code, occurred_at)` | `robot_id` → `robots`; index `(robot_id, occurred_at)` |
+
+- The primary keys of `measurements` and `faults` are the contract's
+  idempotency keys: inserts use `ON CONFLICT DO NOTHING`, so a resent item
+  is stored once.
+- A robot's `lastSeenAt` and `latest` measurement are not stored on the
+  robot: robot reads join each robot to its newest measurement
+  (`LEFT JOIN LATERAL`), and `lastSeenAt` is the later of that
+  measurement's `received_at` and `robots.last_seen_at`. Connectivity
+  (`unknown` / `online` within 5 minutes / `offline`) is derived from it
+  at read time.
+- Telemetry is append-only: nothing updates or deletes measurements or
+  faults. No compression or retention policy is set up yet.
+- A schema change is a new numbered migration in `migrations/`; never edit
+  an applied one.
+
 ## Commands
 
 `make help` lists everything. The ones used most:
@@ -90,13 +119,3 @@ touches.
   invites, stopping other containers).
 - Earlier PRs are merged quickly; before pushing, check whether the PR is
   still open (`gh pr view <n>`) and open a new one if not.
-
-## Environment notes
-
-- Compose is the standalone `docker-compose`; the Makefile detects either.
-- The Docker VM is small (2 CPUs, about 2 GB). A local kind cluster
-  (`multi-*` containers) may be running and competing for it.
-- The shell is zsh: `$VAR` holding several words does not split; use
-  arrays. macOS `sed` has no `\b`; use `perl -pi -e`.
-- `go build ./cmd/<x>` without `-o` drops a binary in the repo root; build
-  into a temp directory instead.
