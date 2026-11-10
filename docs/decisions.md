@@ -158,17 +158,19 @@ whole site or one robot is silent.
 
 **Cost.** Up to 5 minutes to notice.
 
-## 13. History: 24 hours per request, offset paging
+## 13. History: 24 hours per request, no pagination
 
-**Decision.** At most 24 hours per request, any date. `offset` and `limit`
-(max 1000) with `hasMore`, no total count.
+**Decision.** At most 24 hours per request, any date. Lists return all
+their items: pagination is not considered for now.
 
-**Why.** Simple. `hasMore` costs no extra query; a total count would.
+**Why.** Simple to build and to use.
 
-**Cost.** A robot-day can be 87 pages. Clients must reuse the same `from`
-and `to` while paging.
+**Cost.** One robot-day at 1 Hz is up to 86,400 measurements in one
+response.
 
-**Revisit when** dashboards need whole days: add aggregates or cursors.
+**Revisit when** lists or histories grow: pagination is worth adding, and
+dashboards that need whole days would want aggregates (for example one
+value per minute).
 
 ## 14. Errors as problem details
 

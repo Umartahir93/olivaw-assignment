@@ -62,7 +62,7 @@ func (s *Fault) Validate() error {
 	return nil
 }
 
-func (s *FaultPage) Validate() error {
+func (s *FaultList) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -249,7 +249,7 @@ func (s *GatewayHeaders) Validate() error {
 	return nil
 }
 
-func (s *GatewayPage) Validate() error {
+func (s *GatewayList) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -369,7 +369,7 @@ func (s *Measurement) Validate() error {
 	return nil
 }
 
-func (s *MeasurementPage) Validate() error {
+func (s *MeasurementList) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -495,7 +495,7 @@ func (s *Robot) Validate() error {
 	return nil
 }
 
-func (s *RobotPage) Validate() error {
+func (s *RobotList) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}

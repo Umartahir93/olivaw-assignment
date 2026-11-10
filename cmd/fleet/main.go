@@ -67,8 +67,8 @@ func run() error {
 	}()
 	go func() {
 		log.Info("rest server listening", "addr", restAddr)
-		if err := restSrv.Serve(restLis); !errors.Is(err, http.ErrServerClosed) {
-			serveErr <- err
+		if restErr := restSrv.Serve(restLis); !errors.Is(restErr, http.ErrServerClosed) {
+			serveErr <- restErr
 		}
 	}()
 

@@ -17,10 +17,6 @@ type ListGatewayRobotsRes interface {
 	listGatewayRobotsRes()
 }
 
-type ListGatewaysRes interface {
-	listGatewaysRes()
-}
-
 type ListRobotFaultsRes interface {
 	listRobotFaultsRes()
 }

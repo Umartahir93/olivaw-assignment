@@ -213,8 +213,8 @@ once.
   span at most 24 hours; without them, the last 24 hours.
 
 Robots cannot be created through REST; only their gateway reports them.
-Lists use `offset` and `limit` and return `hasMore`. Errors use problem
-details (RFC 9457).
+Lists return all their items: pagination is not considered for now, but
+is worth adding as lists grow. Errors use problem details (RFC 9457).
 
 ## Code layout
 

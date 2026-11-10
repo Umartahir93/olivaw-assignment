@@ -39,8 +39,8 @@ func (h *Handler) CreateGateway(_ context.Context, req *fleetv1.GatewayCreate) (
 }
 
 // ListGateways handles GET /v1/gateways.
-func (h *Handler) ListGateways(context.Context, fleetv1.ListGatewaysParams) (fleetv1.ListGatewaysRes, error) {
-	return &fleetv1.GatewayPage{Items: []fleetv1.Gateway{}}, nil
+func (h *Handler) ListGateways(context.Context) (*fleetv1.GatewayList, error) {
+	return &fleetv1.GatewayList{Items: []fleetv1.Gateway{}}, nil
 }
 
 // GetGateway handles GET /v1/gateways/{gatewayId}.
@@ -52,7 +52,7 @@ func (h *Handler) GetGateway(_ context.Context, params fleetv1.GetGatewayParams)
 
 // ListGatewayRobots handles GET /v1/gateways/{gatewayId}/robots.
 func (h *Handler) ListGatewayRobots(context.Context, fleetv1.ListGatewayRobotsParams) (fleetv1.ListGatewayRobotsRes, error) {
-	return &fleetv1.RobotPage{Items: []fleetv1.Robot{}}, nil
+	return &fleetv1.RobotList{Items: []fleetv1.Robot{}}, nil
 }
 
 // GetRobot handles GET /v1/robots/{robotId}.
@@ -68,12 +68,12 @@ func (h *Handler) GetRobot(_ context.Context, params fleetv1.GetRobotParams) (fl
 
 // ListRobotMeasurements handles GET /v1/robots/{robotId}/measurements.
 func (h *Handler) ListRobotMeasurements(context.Context, fleetv1.ListRobotMeasurementsParams) (fleetv1.ListRobotMeasurementsRes, error) {
-	return &fleetv1.MeasurementPage{Items: []fleetv1.Measurement{}}, nil
+	return &fleetv1.MeasurementList{Items: []fleetv1.Measurement{}}, nil
 }
 
 // ListRobotFaults handles GET /v1/robots/{robotId}/faults.
 func (h *Handler) ListRobotFaults(context.Context, fleetv1.ListRobotFaultsParams) (fleetv1.ListRobotFaultsRes, error) {
-	return &fleetv1.FaultPage{Items: []fleetv1.Fault{}}, nil
+	return &fleetv1.FaultList{Items: []fleetv1.Fault{}}, nil
 }
 
 // NewError turns an error returned by a handler into a 500 problem.

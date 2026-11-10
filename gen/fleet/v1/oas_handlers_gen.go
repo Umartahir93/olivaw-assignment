@@ -354,14 +354,6 @@ func (s *Server) handleListGatewayRobotsRequest(args [1]string, argsEscaped bool
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "offset",
-					In:   "query",
-				}: params.Offset,
-				{
-					Name: "limit",
-					In:   "query",
-				}: params.Limit,
-				{
 					Name: "gatewayId",
 					In:   "path",
 				}: params.GatewayId,
@@ -427,26 +419,12 @@ func (s *Server) handleListGatewaysRequest(args [0]string, argsEscaped bool, w h
 	ctx := r.Context()
 
 	var (
-		err          error
-		opErrContext = ogenerrors.OperationContext{
-			Name: ListGatewaysOperation,
-			ID:   "listGateways",
-		}
+		err error
 	)
-	params, err := decodeListGatewaysParams(args, argsEscaped, r)
-	if err != nil {
-		err = &ogenerrors.DecodeParamsError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeParams", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
 
 	var rawBody []byte
 
-	var response ListGatewaysRes
+	var response *GatewayList
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -455,23 +433,14 @@ func (s *Server) handleListGatewaysRequest(args [0]string, argsEscaped bool, w h
 			OperationID:      "listGateways",
 			Body:             nil,
 			RawBody:          rawBody,
-			Params: middleware.Parameters{
-				{
-					Name: "offset",
-					In:   "query",
-				}: params.Offset,
-				{
-					Name: "limit",
-					In:   "query",
-				}: params.Limit,
-			},
-			Raw: r,
+			Params:           middleware.Parameters{},
+			Raw:              r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = ListGatewaysParams
-			Response = ListGatewaysRes
+			Params   = struct{}
+			Response = *GatewayList
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -480,14 +449,14 @@ func (s *Server) handleListGatewaysRequest(args [0]string, argsEscaped bool, w h
 		](
 			m,
 			mreq,
-			unpackListGatewaysParams,
+			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.ListGateways(ctx, params)
+				response, err = s.h.ListGateways(ctx)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.ListGateways(ctx, params)
+		response, err = s.h.ListGateways(ctx)
 	}
 	if err != nil {
 		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
@@ -564,14 +533,6 @@ func (s *Server) handleListRobotFaultsRequest(args [1]string, argsEscaped bool, 
 					Name: "to",
 					In:   "query",
 				}: params.To,
-				{
-					Name: "offset",
-					In:   "query",
-				}: params.Offset,
-				{
-					Name: "limit",
-					In:   "query",
-				}: params.Limit,
 				{
 					Name: "robotId",
 					In:   "path",
@@ -676,14 +637,6 @@ func (s *Server) handleListRobotMeasurementsRequest(args [1]string, argsEscaped 
 					Name: "to",
 					In:   "query",
 				}: params.To,
-				{
-					Name: "offset",
-					In:   "query",
-				}: params.Offset,
-				{
-					Name: "limit",
-					In:   "query",
-				}: params.Limit,
 				{
 					Name: "robotId",
 					In:   "path",

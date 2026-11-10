@@ -218,34 +218,24 @@ func (s *Fault) SetOccurredAt(val time.Time) {
 	s.OccurredAt = val
 }
 
-// Ref: #/components/schemas/FaultPage
-type FaultPage struct {
+// All matching faults. For the sake of simplicity, lists are not paginated; pagination is worth adding
+// as they grow.
+// Ref: #/components/schemas/FaultList
+type FaultList struct {
 	Items []Fault `json:"items"`
-	// True if more items follow this page.
-	HasMore bool `json:"hasMore"`
 }
 
 // GetItems returns the value of Items.
-func (s *FaultPage) GetItems() []Fault {
+func (s *FaultList) GetItems() []Fault {
 	return s.Items
 }
 
-// GetHasMore returns the value of HasMore.
-func (s *FaultPage) GetHasMore() bool {
-	return s.HasMore
-}
-
 // SetItems sets the value of Items.
-func (s *FaultPage) SetItems(val []Fault) {
+func (s *FaultList) SetItems(val []Fault) {
 	s.Items = val
 }
 
-// SetHasMore sets the value of HasMore.
-func (s *FaultPage) SetHasMore(val bool) {
-	s.HasMore = val
-}
-
-func (*FaultPage) listRobotFaultsRes() {}
+func (*FaultList) listRobotFaultsRes() {}
 
 // Warning: the robot keeps working. critical: the robot cannot work until someone helps. unknown: not
 // reported.
@@ -454,34 +444,22 @@ func (s *GatewayHeaders) SetResponse(val Gateway) {
 
 func (*GatewayHeaders) createGatewayRes() {}
 
-// Ref: #/components/schemas/GatewayPage
-type GatewayPage struct {
+// All matching gateways. For the sake of simplicity, lists are not paginated; pagination is worth
+// adding as they grow.
+// Ref: #/components/schemas/GatewayList
+type GatewayList struct {
 	Items []Gateway `json:"items"`
-	// True if more items follow this page.
-	HasMore bool `json:"hasMore"`
 }
 
 // GetItems returns the value of Items.
-func (s *GatewayPage) GetItems() []Gateway {
+func (s *GatewayList) GetItems() []Gateway {
 	return s.Items
 }
 
-// GetHasMore returns the value of HasMore.
-func (s *GatewayPage) GetHasMore() bool {
-	return s.HasMore
-}
-
 // SetItems sets the value of Items.
-func (s *GatewayPage) SetItems(val []Gateway) {
+func (s *GatewayList) SetItems(val []Gateway) {
 	s.Items = val
 }
-
-// SetHasMore sets the value of HasMore.
-func (s *GatewayPage) SetHasMore(val bool) {
-	s.HasMore = val
-}
-
-func (*GatewayPage) listGatewaysRes() {}
 
 type GetGatewayBadRequest Problem
 
@@ -587,34 +565,24 @@ func (s *Measurement) SetMeasuredAt(val time.Time) {
 	s.MeasuredAt = val
 }
 
-// Ref: #/components/schemas/MeasurementPage
-type MeasurementPage struct {
+// All matching measurements. For the sake of simplicity, lists are not paginated; pagination is worth
+// adding as they grow.
+// Ref: #/components/schemas/MeasurementList
+type MeasurementList struct {
 	Items []Measurement `json:"items"`
-	// True if more items follow this page.
-	HasMore bool `json:"hasMore"`
 }
 
 // GetItems returns the value of Items.
-func (s *MeasurementPage) GetItems() []Measurement {
+func (s *MeasurementList) GetItems() []Measurement {
 	return s.Items
 }
 
-// GetHasMore returns the value of HasMore.
-func (s *MeasurementPage) GetHasMore() bool {
-	return s.HasMore
-}
-
 // SetItems sets the value of Items.
-func (s *MeasurementPage) SetItems(val []Measurement) {
+func (s *MeasurementList) SetItems(val []Measurement) {
 	s.Items = val
 }
 
-// SetHasMore sets the value of HasMore.
-func (s *MeasurementPage) SetHasMore(val bool) {
-	s.HasMore = val
-}
-
-func (*MeasurementPage) listRobotMeasurementsRes() {}
+func (*MeasurementList) listRobotMeasurementsRes() {}
 
 // NewOptDateTime returns new OptDateTime with value set to v.
 func NewOptDateTime(v time.Time) OptDateTime {
@@ -656,52 +624,6 @@ func (o OptDateTime) Get() (v time.Time, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDateTime) Or(d time.Time) time.Time {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptInt returns new OptInt with value set to v.
-func NewOptInt(v int) OptInt {
-	return OptInt{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptInt is optional int.
-type OptInt struct {
-	Value int
-	Set   bool
-}
-
-// IsSet returns true if OptInt was set.
-func (o OptInt) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptInt) Reset() {
-	var v int
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptInt) SetTo(v int) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptInt) Get() (v int, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptInt) Or(d int) int {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1188,8 +1110,6 @@ func (s *Problem) SetInstance(val OptString) {
 	s.Instance = val
 }
 
-func (*Problem) listGatewaysRes() {}
-
 // A robot and its current state.
 // Ref: #/components/schemas/Robot
 type Robot struct {
@@ -1280,31 +1200,21 @@ func (s *Robot) SetLatest(val OptNilMeasurement) {
 
 func (*Robot) getRobotRes() {}
 
-// Ref: #/components/schemas/RobotPage
-type RobotPage struct {
+// All matching robots. For the sake of simplicity, lists are not paginated; pagination is worth adding
+// as they grow.
+// Ref: #/components/schemas/RobotList
+type RobotList struct {
 	Items []Robot `json:"items"`
-	// True if more items follow this page.
-	HasMore bool `json:"hasMore"`
 }
 
 // GetItems returns the value of Items.
-func (s *RobotPage) GetItems() []Robot {
+func (s *RobotList) GetItems() []Robot {
 	return s.Items
 }
 
-// GetHasMore returns the value of HasMore.
-func (s *RobotPage) GetHasMore() bool {
-	return s.HasMore
-}
-
 // SetItems sets the value of Items.
-func (s *RobotPage) SetItems(val []Robot) {
+func (s *RobotList) SetItems(val []Robot) {
 	s.Items = val
 }
 
-// SetHasMore sets the value of HasMore.
-func (s *RobotPage) SetHasMore(val bool) {
-	s.HasMore = val
-}
-
-func (*RobotPage) listGatewayRobotsRes() {}
+func (*RobotList) listGatewayRobotsRes() {}

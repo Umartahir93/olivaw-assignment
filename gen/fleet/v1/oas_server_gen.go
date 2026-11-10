@@ -37,7 +37,7 @@ type Handler interface {
 	// List gateways.
 	//
 	// GET /v1/gateways
-	ListGateways(ctx context.Context, params ListGatewaysParams) (ListGatewaysRes, error)
+	ListGateways(ctx context.Context) (*GatewayList, error)
 	// ListRobotFaults implements listRobotFaults operation.
 	//
 	// Returns faults from a time range of at most 24 hours, on any date. Without `from` and `to`, that is

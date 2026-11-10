@@ -1,3 +1,5 @@
+//go:build unit
+
 package api
 
 import (
@@ -23,18 +25,18 @@ func TestHandlersReturnSuccess(t *testing.T) {
 		{"create gateway", func() (any, error) {
 			return h.CreateGateway(ctx, &fleetv1.GatewayCreate{SerialNumber: "GW-1", Location: "HQ"})
 		}, &fleetv1.GatewayHeaders{}},
-		{"list gateways", func() (any, error) { return h.ListGateways(ctx, fleetv1.ListGatewaysParams{}) }, &fleetv1.GatewayPage{}},
+		{"list gateways", func() (any, error) { return h.ListGateways(ctx) }, &fleetv1.GatewayList{}},
 		{"get gateway", func() (any, error) { return h.GetGateway(ctx, fleetv1.GetGatewayParams{GatewayId: id}) }, &fleetv1.Gateway{}},
 		{"list gateway robots", func() (any, error) {
 			return h.ListGatewayRobots(ctx, fleetv1.ListGatewayRobotsParams{GatewayId: id})
-		}, &fleetv1.RobotPage{}},
+		}, &fleetv1.RobotList{}},
 		{"get robot", func() (any, error) { return h.GetRobot(ctx, fleetv1.GetRobotParams{RobotId: id}) }, &fleetv1.Robot{}},
 		{"list measurements", func() (any, error) {
 			return h.ListRobotMeasurements(ctx, fleetv1.ListRobotMeasurementsParams{RobotId: id})
-		}, &fleetv1.MeasurementPage{}},
+		}, &fleetv1.MeasurementList{}},
 		{"list faults", func() (any, error) {
 			return h.ListRobotFaults(ctx, fleetv1.ListRobotFaultsParams{RobotId: id})
-		}, &fleetv1.FaultPage{}},
+		}, &fleetv1.FaultList{}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
