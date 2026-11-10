@@ -49,6 +49,10 @@ half-finished parts.
   login. Real identity does not change the data flow, which is what this
   project is about.
 
+Where the design stops today, and how each limit would be lifted (a
+broker, a live endpoint, a historical endpoint and more), is in
+[Current limitations and how to extend](#current-limitations-and-how-to-extend).
+
 ## What it does
 
 The system has two APIs, one per kind of client:
@@ -125,22 +129,46 @@ chunks of its range, however long the history grows.
 
 Each of these keeps the project small. The extensions add to the APIs
 rather than change them; only real identity changes how a gateway
-connects (a client certificate instead of `x-gateway-id`).
+connects (a client certificate instead of `x-gateway-id`). They are
+grouped by the non-functional requirement they affect.
+
+### Performance and scalability
 
 | Limitation | Today | How to extend |
 |---|---|---|
 | **Synchronous ingestion** | Each measurement is validated and stored within its gRPC call; no broker ([decision 15](docs/decisions.md#15-direct-calls-no-pipeline)). | Ingestion only validates and publishes to a broker (Kafka, NATS JetStream); consumers store in batches, track connectivity and alert. Ingestion no longer waits for the database, and backlogs after an outage are absorbed ([event-driven pipeline](docs/architecture.md#future-an-event-driven-pipeline)). |
-| **No live view** | The fleet manager polls REST. | A live endpoint (server-sent events, WebSocket, or gRPC server streaming) that pushes new measurements and connectivity changes to dashboards, fed by the broker. |
+| **One measurement per call** | Unary gRPC calls ([decision 5](docs/decisions.md#5-unary-calls-one-measurement-per-request)). | Batched requests or client streaming for sites with many robots. |
+| **One server instance** | One process serves both APIs. | The server is stateless, so it scales out behind a load balancer, with PgBouncer for connections and read replicas for REST reads. |
 | **Limited history** | Raw measurements, at most 24 hours per request, every item in one response ([decision 13](docs/decisions.md#13-history-24-hours-per-request-no-pagination)). | A historical endpoint: aggregates such as per-minute averages from TimescaleDB continuous aggregates, longer ranges, cursor pagination and export; a column store such as ClickHouse for fleet-wide analytics. |
 | **No compression or retention** | Every measurement is kept uncompressed ([decision 17](docs/decisions.md#17-storage-timescaledb)). | TimescaleDB compression for old chunks, and a retention policy once the business decides how long raw data matters. |
-| **Faked identity** | `x-gateway-id` metadata; REST has no auth ([decision 7](docs/decisions.md#7-gateway-identity-in-metadata)). | Mutual TLS for gateways; authentication and roles (admin, fleet manager) for people. |
-| **One measurement per call** | Unary gRPC calls ([decision 5](docs/decisions.md#5-unary-calls-one-measurement-per-request)). | Batched requests or client streaming for sites with many robots. |
+
+### Reliability
+
+| Limitation | Today | How to extend |
+|---|---|---|
+| **No overload protection** | Nothing limits how often a gateway calls. After an outage, every gateway retries at the same moment (the contract allows 3 retries per item), and those retries can keep the server overloaded: a retry storm. | A rate limiter per gateway (token bucket) that answers `RESOURCE_EXHAUSTED` with a retry delay; bounded concurrency and load shedding, so the server rejects early instead of slowing down for everyone; circuit breakers around the database, and in the gateway client so it stops calling a server that keeps failing; exponential backoff with jitter, so retries spread out instead of arriving together. |
 | **Gateway delivery rules** | The simulator drops a failed measurement: no buffer, no retry, and it sends no faults. | A real gateway client with the rules the contract describes: buffer, retry with backoff, dead-letter queue ([decision 11](docs/decisions.md#11-delivery-buffer-retry-dead-letter-queue)). |
+| **No CI/CD or load tests** | Tests, lint and the proto breaking-change check run locally with make. | A pipeline running them on every pull request, plus load and soak tests (ghz for gRPC, k6 for REST) to find where synchronous ingestion stops keeping up. |
+
+### Security
+
+| Limitation | Today | How to extend |
+|---|---|---|
+| **Faked identity** | `x-gateway-id` metadata; REST has no auth ([decision 7](docs/decisions.md#7-gateway-identity-in-metadata)). | Mutual TLS for gateways; authentication and roles (admin, fleet manager) for people. |
+
+### Operability
+
+| Limitation | Today | How to extend |
+|---|---|---|
 | **Observability** | Structured logs and health checks only. | Metrics (ingestion rate, latency, errors) and distributed tracing next to the logs. |
 | **No alerting** | Someone has to watch the REST API to notice a problem. | Alerts (email, Slack, webhook) when a robot goes `offline`, reports a critical fault or runs low on battery, raised by a consumer of the broker. |
+
+### Features for the fleet manager
+
+| Limitation | Today | How to extend |
+|---|---|---|
+| **No live view** | The fleet manager polls REST. | A live endpoint (server-sent events, WebSocket, or gRPC server streaming) that pushes new measurements and connectivity changes to dashboards, fed by the broker. |
 | **No fleet-wide view** | Reads are per gateway or per robot. | Fleet-wide endpoints: robots per connectivity and activity, battery distribution, faults per site, built on TimescaleDB aggregates. |
-| **One server instance** | One process serves both APIs; nothing limits a single gateway. | The server is stateless, so it scales out behind a load balancer, with PgBouncer for connections and read replicas for REST reads; rate limits and backpressure per gateway, so one site cannot flood ingestion. |
-| **No CI/CD or load tests** | Tests, lint and the proto breaking-change check run locally with make. | A pipeline running them on every pull request, plus load and soak tests (ghz for gRPC, k6 for REST) to find where synchronous ingestion stops keeping up. |
 
 ## Architecture and decisions
 
