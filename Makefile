@@ -84,16 +84,16 @@ GO_IMAGE := golang:1.26
 DOCKER_GO := docker run --rm -v $(CURDIR):/src -w /src -v olivaw-assignment_go-mod:/go/pkg/mod -v olivaw-assignment_go-build:/root/.cache/go-build
 
 .PHONY: up
-up: ## Build and start everything in Docker: database, server (REST :8080, gRPC :9090) and simulator.
-	$(COMPOSE) up -d --build
+up: ## Build and start the database and the server (REST :8080, gRPC :9090) in Docker, and wait until they are ready.
+	$(COMPOSE) up -d --build --wait
 
 .PHONY: down
-down: ## Stop everything started with up or db-up.
-	$(COMPOSE) down
+down: ## Stop everything started with up, db-up or simulate.
+	$(COMPOSE) --profile simulator down
 
 .PHONY: logs
 logs: ## Follow the logs of the server and the simulator.
-	$(COMPOSE) logs -f fleet simulator
+	$(COMPOSE) --profile simulator logs -f fleet simulator
 
 .PHONY: db-up
 db-up: ## Start only the database (fleet and fleet_test) and wait until it is ready.
@@ -119,11 +119,34 @@ docker_test: test_integration_docker test_unit_docker test_e2e_docker ## Run uni
 docker_lint: ## Lint the Go code in a golangci-lint container.
 	$(DOCKER_GO) golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --build-tags unit,integration,e2e ./...
 
+.PHONY: run-server
+run-server: db-up ## Run the server locally (go run) against the database from db-up: REST :8080, gRPC :9090.
+	go run ./cmd/fleet
+
 ##@ Simulator
 
+# The simulator is only the gateway. Registering it is an operator's job over
+# REST; register-gateway does that call, and the simulator then runs with the
+# gatewayId it printed: make simulate GATEWAY_ID=<gatewayId>.
+REST_URL ?= http://localhost:8080
+SERIAL   ?= GW-$(shell date +%s)
+LOCATION ?= Munich HQ
+
+.PHONY: register-gateway
+register-gateway: ## Register a gateway over REST, as an operator would (SERIAL, LOCATION); prints it with its gatewayId.
+	@curl -sS -X POST $(REST_URL)/v1/gateways -H 'Content-Type: application/json' \
+		-d '{"serialNumber":"$(SERIAL)","location":"$(LOCATION)"}'
+	@echo
+
 .PHONY: run-simulator
-run-simulator: ## Run simulated robots against the gRPC server on localhost:9090.
-	go run ./cmd/simulator
+run-simulator: ## Run the gateway simulator locally against localhost:9090 (GATEWAY_ID=<gatewayId>).
+	$(if $(GATEWAY_ID),,$(error GATEWAY_ID is required: run make register-gateway first))
+	go run ./cmd/simulator -gateway-id $(GATEWAY_ID)
+
+.PHONY: simulate
+simulate: ## Run the gateway simulator in Docker against the server from up (GATEWAY_ID=<gatewayId>).
+	$(if $(GATEWAY_ID),,$(error GATEWAY_ID is required: run make register-gateway first))
+	GATEWAY_ID=$(GATEWAY_ID) $(COMPOSE) --profile simulator up -d --build simulator
 
 ##@ gRPC (apispecs/grpc)
 
@@ -161,5 +184,5 @@ grpc-generate: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) ## Generate the gRP
 REST_DIR := apispecs/rest
 
 .PHONY: rest-generate
-rest-generate: $(OGEN) ## Generate the REST server and models into ./gen/fleet/v1.
+rest-generate: $(OGEN) ## Generate the REST server, client and models into ./gen/fleet/v1.
 	$(OGEN) --config $(REST_DIR)/ogen.yaml --target gen/fleet/v1 --package fleetv1 --clean $(REST_DIR)/openapi.yaml
