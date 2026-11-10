@@ -1,5 +1,5 @@
 // Package grpc implements the RobotService of the gRPC contract: data about
-// one robot, sent by its gateway.
+// one robot, sent by its gateway, which the system stores.
 package grpc
 
 import (
@@ -18,12 +18,12 @@ import (
 
 // RobotService is what the RobotService handlers need from the robot service.
 type RobotService interface {
-	MarkSeen(ctx context.Context, gatewayID, robotID uuid.UUID) (domain.Robot, error)
+	ReportMeasurement(ctx context.Context, gatewayID uuid.UUID, m domain.Measurement) error
+	ReportFault(ctx context.Context, gatewayID uuid.UUID, f domain.Fault) error
 }
 
-// Server implements gatewayv1.RobotServiceServer. Measurements and faults are
-// validated and the robot is marked as seen; storing them comes with the
-// measurement pipeline.
+// Server implements gatewayv1.RobotServiceServer: it validates measurements
+// and faults and stores them through the robot service.
 type Server struct {
 	gatewayv1.UnimplementedRobotServiceServer
 
@@ -36,42 +36,37 @@ func NewServer(gateways gatewaygrpc.GatewayService, robots RobotService) *Server
 	return &Server{gateways: gateways, robots: robots}
 }
 
-// ReportMeasurement accepts one measurement of one robot of the calling
+// ReportMeasurement stores one measurement of one robot of the calling
 // gateway.
 func (s *Server) ReportMeasurement(ctx context.Context, req *gatewayv1.ReportMeasurementRequest) (*gatewayv1.ReportMeasurementResponse, error) {
 	robotID, err := validateMeasurement(req.GetMeasurement())
 	if err != nil {
 		return nil, err
 	}
-	if err := s.markSeen(ctx, robotID); err != nil {
+	gatewayID, err := gatewaygrpc.GatewayIDFromMetadata(ctx, s.gateways)
+	if err != nil {
 		return nil, err
+	}
+	if err = s.robots.ReportMeasurement(ctx, gatewayID, measurementToDomain(robotID, req.GetMeasurement())); err != nil {
+		return nil, toStatus(err)
 	}
 	return &gatewayv1.ReportMeasurementResponse{}, nil
 }
 
-// ReportFault accepts one fault of one robot of the calling gateway.
+// ReportFault stores one fault of one robot of the calling gateway.
 func (s *Server) ReportFault(ctx context.Context, req *gatewayv1.ReportFaultRequest) (*gatewayv1.ReportFaultResponse, error) {
 	robotID, err := validateFault(req.GetFault())
 	if err != nil {
 		return nil, err
 	}
-	if err := s.markSeen(ctx, robotID); err != nil {
+	gatewayID, err := gatewaygrpc.GatewayIDFromMetadata(ctx, s.gateways)
+	if err != nil {
 		return nil, err
 	}
+	if err = s.robots.ReportFault(ctx, gatewayID, faultToDomain(robotID, req.GetFault())); err != nil {
+		return nil, toStatus(err)
+	}
 	return &gatewayv1.ReportFaultResponse{}, nil
-}
-
-// markSeen checks that the robot belongs to the calling gateway and records
-// that it was heard from.
-func (s *Server) markSeen(ctx context.Context, robotID uuid.UUID) error {
-	gatewayID, err := gatewaygrpc.CallingGateway(ctx, s.gateways)
-	if err != nil {
-		return err
-	}
-	if _, err = s.robots.MarkSeen(ctx, gatewayID, robotID); err != nil {
-		return toStatus(err)
-	}
-	return nil
 }
 
 func validateMeasurement(m *gatewayv1.Measurement) (uuid.UUID, error) {
@@ -115,6 +110,54 @@ func validateFault(f *gatewayv1.Fault) (uuid.UUID, error) {
 	}
 	return robotID, nil
 }
+
+// measurementToDomain turns a validated measurement into a domain one.
+func measurementToDomain(robotID uuid.UUID, m *gatewayv1.Measurement) domain.Measurement {
+	out := domain.Measurement{
+		RobotID:          robotID,
+		BatteryPct:       m.BatteryPct,
+		Activity:         activities[m.GetActivity()],
+		ActiveFaultCodes: m.GetActiveFaultCodes(),
+		MeasuredAt:       m.GetMeasuredAt().AsTime(),
+	}
+	if out.Activity == "" {
+		out.Activity = domain.ActivityUnknown // a value newer than this server
+	}
+	if p := m.GetPosition(); p != nil {
+		out.Position = &domain.Position{MapID: p.GetMapId(), X: p.GetX(), Y: p.GetY(), HeadingRad: p.GetHeadingRad()}
+	}
+	return out
+}
+
+// faultToDomain turns a validated fault into a domain one.
+func faultToDomain(robotID uuid.UUID, f *gatewayv1.Fault) domain.Fault {
+	severity, ok := severities[f.GetSeverity()]
+	if !ok {
+		severity = domain.SeverityUnknown // a value newer than this server
+	}
+	return domain.Fault{
+		RobotID:    robotID,
+		Code:       f.GetCode(),
+		Severity:   severity,
+		Message:    f.GetMessage(),
+		OccurredAt: f.GetOccurredAt().AsTime(),
+	}
+}
+
+var (
+	activities = map[gatewayv1.Activity]domain.Activity{
+		gatewayv1.Activity_ACTIVITY_UNSPECIFIED: domain.ActivityUnknown,
+		gatewayv1.Activity_ACTIVITY_IDLE:        domain.ActivityIdle,
+		gatewayv1.Activity_ACTIVITY_MOVING:      domain.ActivityMoving,
+		gatewayv1.Activity_ACTIVITY_CHARGING:    domain.ActivityCharging,
+		gatewayv1.Activity_ACTIVITY_ERROR:       domain.ActivityError,
+	}
+	severities = map[gatewayv1.Fault_Severity]domain.Severity{
+		gatewayv1.Fault_SEVERITY_UNSPECIFIED: domain.SeverityUnknown,
+		gatewayv1.Fault_SEVERITY_WARNING:     domain.SeverityWarning,
+		gatewayv1.Fault_SEVERITY_CRITICAL:    domain.SeverityCritical,
+	}
+)
 
 func finite(f float64) bool {
 	return !math.IsNaN(f) && !math.IsInf(f, 0)

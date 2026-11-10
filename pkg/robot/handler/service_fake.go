@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -9,10 +10,16 @@ import (
 )
 
 // FakeRobotService is an in-memory RobotService for tests. It knows the
-// robots in Robots; set Err to make every call fail with it.
+// robots, measurements and faults it holds; set Err to make every call fail
+// with it.
 type FakeRobotService struct {
-	Err    error
-	Robots []domain.Robot
+	Err          error
+	Robots       []domain.Robot
+	Measurements []domain.Measurement
+	Faults       []domain.Fault
+
+	// From and To hold the time range of the last list call.
+	From, To time.Time
 }
 
 var _ RobotService = (*FakeRobotService)(nil)
@@ -28,4 +35,36 @@ func (f *FakeRobotService) GetRobot(_ context.Context, id uuid.UUID) (domain.Rob
 		}
 	}
 	return domain.Robot{}, domain.ErrNotFound
+}
+
+// ListMeasurements records the range and returns the robot's measurements,
+// or domain.ErrNotFound for an unknown robot.
+func (f *FakeRobotService) ListMeasurements(ctx context.Context, robotID uuid.UUID, from, to time.Time) ([]domain.Measurement, error) {
+	f.From, f.To = from, to
+	if _, err := f.GetRobot(ctx, robotID); err != nil {
+		return nil, err
+	}
+	measurements := []domain.Measurement{}
+	for _, m := range f.Measurements {
+		if m.RobotID == robotID {
+			measurements = append(measurements, m)
+		}
+	}
+	return measurements, nil
+}
+
+// ListFaults records the range and returns the robot's faults, or
+// domain.ErrNotFound for an unknown robot.
+func (f *FakeRobotService) ListFaults(ctx context.Context, robotID uuid.UUID, from, to time.Time) ([]domain.Fault, error) {
+	f.From, f.To = from, to
+	if _, err := f.GetRobot(ctx, robotID); err != nil {
+		return nil, err
+	}
+	faults := []domain.Fault{}
+	for _, fault := range f.Faults {
+		if fault.RobotID == robotID {
+			faults = append(faults, fault)
+		}
+	}
+	return faults, nil
 }

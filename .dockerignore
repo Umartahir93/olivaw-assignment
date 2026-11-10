@@ -1,5 +1,21 @@
+# Only what the images are built from goes into the build context: anything
+# else would make COPY . . change, and rebuild the images, whenever it does.
+
+# Editor, VCS and local tools.
 .git
 .idea
 .vscode
 .claude
 bin
+
+# Not compiled into the binaries: tests, docs, API specs (the generated
+# code in gen/ is committed) and the build and run setup.
+test
+**/*_test.go
+docs
+apispecs
+*.md
+Makefile
+Dockerfile
+docker-compose.yml
+.dockerignore

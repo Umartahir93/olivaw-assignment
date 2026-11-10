@@ -56,7 +56,7 @@ func asGateway(id string) context.Context {
 	return metadata.NewIncomingContext(context.Background(), metadata.Pairs(gatewaygrpc.GatewayIDKey, id))
 }
 
-func TestCallingGateway(t *testing.T) {
+func TestGatewayIDFromMetadata(t *testing.T) {
 	tests := []struct {
 		name     string
 		ctx      context.Context
@@ -101,7 +101,7 @@ func TestCallingGateway(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := gatewaygrpc.CallingGateway(tt.ctx, tt.gateways)
+			got, err := gatewaygrpc.GatewayIDFromMetadata(tt.ctx, tt.gateways)
 
 			if code := status.Code(err); code != tt.wantCode {
 				t.Fatalf("code = %s, want %s (error: %v)", code, tt.wantCode, err)

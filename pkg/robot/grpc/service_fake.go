@@ -9,19 +9,29 @@ import (
 )
 
 // FakeRobotService is a RobotService for tests. It fails with Err, or
-// records the robot IDs passed to MarkSeen in Seen.
+// records what it is asked to store.
 type FakeRobotService struct {
-	Err  error
-	Seen []uuid.UUID
+	Err          error
+	Measurements []domain.Measurement
+	Faults       []domain.Fault
 }
 
 var _ RobotService = (*FakeRobotService)(nil)
 
-// MarkSeen records robotID and returns the robot of gatewayID.
-func (f *FakeRobotService) MarkSeen(_ context.Context, gatewayID, robotID uuid.UUID) (domain.Robot, error) {
+// ReportMeasurement records m.
+func (f *FakeRobotService) ReportMeasurement(_ context.Context, _ uuid.UUID, m domain.Measurement) error {
 	if f.Err != nil {
-		return domain.Robot{}, f.Err
+		return f.Err
 	}
-	f.Seen = append(f.Seen, robotID)
-	return domain.Robot{ID: robotID, GatewayID: gatewayID}, nil
+	f.Measurements = append(f.Measurements, m)
+	return nil
+}
+
+// ReportFault records fault.
+func (f *FakeRobotService) ReportFault(_ context.Context, _ uuid.UUID, fault domain.Fault) error {
+	if f.Err != nil {
+		return f.Err
+	}
+	f.Faults = append(f.Faults, fault)
+	return nil
 }

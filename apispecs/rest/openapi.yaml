@@ -203,6 +203,7 @@ components:
       schema:
         type: string
         format: date-time
+        x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
     To:
       name: to
       in: query
@@ -212,6 +213,7 @@ components:
       schema:
         type: string
         format: date-time
+        x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
 
   responses:
     BadRequest:
@@ -257,11 +259,13 @@ components:
         registeredAt:
           type: string
           format: date-time
+          x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
         connectivity:
           $ref: "#/components/schemas/Connectivity"
         lastSeenAt:
           type: string
           format: date-time
+          x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
           nullable: true
           description: When the gateway last called the system; null if never.
 
@@ -325,14 +329,19 @@ components:
         firstSeenAt:
           type: string
           format: date-time
+          x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
           description: When a scan first reported the robot.
         connectivity:
           $ref: "#/components/schemas/Connectivity"
         lastSeenAt:
           type: string
           format: date-time
+          x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
           nullable: true
-          description: When the robot's last measurement arrived; null if never.
+          description: |
+            When the robot was last seen: when its newest measurement
+            arrived, or when a scan last reported it, whichever is later.
+            Null if neither happened.
         latest:
           allOf:
             - $ref: "#/components/schemas/Measurement"
@@ -380,6 +389,7 @@ components:
         measuredAt:
           type: string
           format: date-time
+          x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
           description: When the measurement was taken.
 
     Position:
@@ -429,6 +439,7 @@ components:
         occurredAt:
           type: string
           format: date-time
+          x-ogen-time-format: "2006-01-02T15:04:05.999999999Z07:00"
           description: When the robot detected the fault.
 
     MeasurementList:

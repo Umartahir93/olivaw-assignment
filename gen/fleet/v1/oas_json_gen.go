@@ -200,7 +200,7 @@ func (s *Fault) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("occurredAt")
-		json.EncodeDateTime(e, s.OccurredAt)
+		json.EncodeTimeFormat(e, s.OccurredAt, "2006-01-02T15:04:05.999999999Z07:00")
 	}
 }
 
@@ -257,7 +257,7 @@ func (s *Fault) Decode(d *jx.Decoder) error {
 		case "occurredAt":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := json.DecodeDateTime(d)
+				v, err := json.DecodeTimeFormat(d, "2006-01-02T15:04:05.999999999Z07:00")
 				s.OccurredAt = v
 				if err != nil {
 					return err
@@ -499,7 +499,7 @@ func (s *Gateway) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("registeredAt")
-		json.EncodeDateTime(e, s.RegisteredAt)
+		json.EncodeTimeFormat(e, s.RegisteredAt, "2006-01-02T15:04:05.999999999Z07:00")
 	}
 	{
 		e.FieldStart("connectivity")
@@ -508,7 +508,7 @@ func (s *Gateway) encodeFields(e *jx.Encoder) {
 	{
 		if s.LastSeenAt.Set {
 			e.FieldStart("lastSeenAt")
-			s.LastSeenAt.Encode(e, json.EncodeDateTime)
+			s.LastSeenAt.Encode(e, json.NewTimeEncoder("2006-01-02T15:04:05.999999999Z07:00"))
 		}
 	}
 }
@@ -581,7 +581,7 @@ func (s *Gateway) Decode(d *jx.Decoder) error {
 		case "registeredAt":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := json.DecodeDateTime(d)
+				v, err := json.DecodeTimeFormat(d, "2006-01-02T15:04:05.999999999Z07:00")
 				s.RegisteredAt = v
 				if err != nil {
 					return err
@@ -603,7 +603,7 @@ func (s *Gateway) Decode(d *jx.Decoder) error {
 		case "lastSeenAt":
 			if err := func() error {
 				s.LastSeenAt.Reset()
-				if err := s.LastSeenAt.Decode(d, json.DecodeDateTime); err != nil {
+				if err := s.LastSeenAt.Decode(d, json.NewTimeDecoder("2006-01-02T15:04:05.999999999Z07:00")); err != nil {
 					return err
 				}
 				return nil
@@ -1317,7 +1317,7 @@ func (s *Measurement) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("measuredAt")
-		json.EncodeDateTime(e, s.MeasuredAt)
+		json.EncodeTimeFormat(e, s.MeasuredAt, "2006-01-02T15:04:05.999999999Z07:00")
 	}
 }
 
@@ -1391,7 +1391,7 @@ func (s *Measurement) Decode(d *jx.Decoder) error {
 		case "measuredAt":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := json.DecodeDateTime(d)
+				v, err := json.DecodeTimeFormat(d, "2006-01-02T15:04:05.999999999Z07:00")
 				s.MeasuredAt = v
 				if err != nil {
 					return err
@@ -1603,14 +1603,14 @@ func (o *OptNilDateTime) Decode(d *jx.Decoder, format func(*jx.Decoder) (time.Ti
 // MarshalJSON implements stdjson.Marshaler.
 func (s OptNilDateTime) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
-	s.Encode(&e, json.EncodeDateTime)
+	s.Encode(&e, json.NewTimeEncoder("2006-01-02T15:04:05.999999999Z07:00"))
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptNilDateTime) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
-	return s.Decode(d, json.DecodeDateTime)
+	return s.Decode(d, json.NewTimeDecoder("2006-01-02T15:04:05.999999999Z07:00"))
 }
 
 // Encode encodes float64 as json.
@@ -2132,7 +2132,7 @@ func (s *Robot) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("firstSeenAt")
-		json.EncodeDateTime(e, s.FirstSeenAt)
+		json.EncodeTimeFormat(e, s.FirstSeenAt, "2006-01-02T15:04:05.999999999Z07:00")
 	}
 	{
 		e.FieldStart("connectivity")
@@ -2141,7 +2141,7 @@ func (s *Robot) encodeFields(e *jx.Encoder) {
 	{
 		if s.LastSeenAt.Set {
 			e.FieldStart("lastSeenAt")
-			s.LastSeenAt.Encode(e, json.EncodeDateTime)
+			s.LastSeenAt.Encode(e, json.NewTimeEncoder("2006-01-02T15:04:05.999999999Z07:00"))
 		}
 	}
 	{
@@ -2210,7 +2210,7 @@ func (s *Robot) Decode(d *jx.Decoder) error {
 		case "firstSeenAt":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := json.DecodeDateTime(d)
+				v, err := json.DecodeTimeFormat(d, "2006-01-02T15:04:05.999999999Z07:00")
 				s.FirstSeenAt = v
 				if err != nil {
 					return err
@@ -2232,7 +2232,7 @@ func (s *Robot) Decode(d *jx.Decoder) error {
 		case "lastSeenAt":
 			if err := func() error {
 				s.LastSeenAt.Reset()
-				if err := s.LastSeenAt.Decode(d, json.DecodeDateTime); err != nil {
+				if err := s.LastSeenAt.Decode(d, json.NewTimeDecoder("2006-01-02T15:04:05.999999999Z07:00")); err != nil {
 					return err
 				}
 				return nil

@@ -157,6 +157,12 @@ then `offline`. For gateways and robots.
 **Why.** Something offline cannot report it. Both levels show whether a
 whole site or one robot is silent.
 
+**How.** A gateway is marked seen on every call. A robot is marked seen
+when a scan reports it; after that, its newest stored measurement tells
+when it was last seen. So a measurement costs no extra write, and a robot
+whose newest measurement is older than 5 minutes is offline without
+anything having to happen.
+
 **Cost.** Up to 5 minutes to notice.
 
 ## 13. History: 24 hours per request, no pagination
@@ -200,11 +206,28 @@ and let consumers store, track and alert.
 **Revisit when** load differs: split ingestion and the fleet API into
 separate binaries.
 
-## 17. Storage: TimescaleDB (planned)
+## 17. Storage: TimescaleDB
 
-**Why.** Measurements are append-only and time-ordered. TimescaleDB
-partitions by time, compresses old data and expires it, and is still
-PostgreSQL for everything else.
+**Decision.** One database: PostgreSQL with the TimescaleDB extension.
+Gateways, robots and faults are plain tables; measurements are a
+hypertable, split into chunks by time.
+
+**Why.**
+- Measurements are append-only and time-ordered, and always read as one
+  robot over a time range. TimescaleDB partitions by time, so such a query
+  reads only the chunks it needs. It can compress old chunks, and drop
+  them after a retention period if the business does not need them
+  (neither policy is set up yet).
+- It is still PostgreSQL for everything else: one database to run, back
+  up and test against, also on customer hardware.
 
 **Not ClickHouse.** Faster for fleet-wide analytics, but a second database
-to run, also on customer hardware.
+to run.
+
+**Cost.** Every measurement is one write within its gRPC call (decision
+15), so ingestion is only as fast as the database.
+
+**Revisit when** load reaches production scale: put a broker (Kafka, NATS
+JetStream) in front of storage so ingestion does not wait for the
+database, write in batches, and consider a column store such as
+ClickHouse for fleet-wide analytics.

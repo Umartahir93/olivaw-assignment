@@ -427,7 +427,7 @@ func (c *Client) sendListRobotFaults(ctx context.Context, params ListRobotFaults
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.From.Get(); ok {
-				return e.EncodeValue(conv.DateTimeToString(val))
+				return e.EncodeValue(val.Format("2006-01-02T15:04:05.999999999Z07:00"))
 			}
 			return nil
 		}); err != nil {
@@ -444,7 +444,7 @@ func (c *Client) sendListRobotFaults(ctx context.Context, params ListRobotFaults
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.To.Get(); ok {
-				return e.EncodeValue(conv.DateTimeToString(val))
+				return e.EncodeValue(val.Format("2006-01-02T15:04:05.999999999Z07:00"))
 			}
 			return nil
 		}); err != nil {
@@ -527,7 +527,7 @@ func (c *Client) sendListRobotMeasurements(ctx context.Context, params ListRobot
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.From.Get(); ok {
-				return e.EncodeValue(conv.DateTimeToString(val))
+				return e.EncodeValue(val.Format("2006-01-02T15:04:05.999999999Z07:00"))
 			}
 			return nil
 		}); err != nil {
@@ -544,7 +544,7 @@ func (c *Client) sendListRobotMeasurements(ctx context.Context, params ListRobot
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.To.Get(); ok {
-				return e.EncodeValue(conv.DateTimeToString(val))
+				return e.EncodeValue(val.Format("2006-01-02T15:04:05.999999999Z07:00"))
 			}
 			return nil
 		}); err != nil {

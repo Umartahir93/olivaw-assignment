@@ -45,7 +45,7 @@ func NewServer(gateways GatewayService, robots RobotService) *Server {
 
 // ListRobots returns the robots the system knows for the calling gateway.
 func (s *Server) ListRobots(ctx context.Context, _ *gatewayv1.ListRobotsRequest) (*gatewayv1.ListRobotsResponse, error) {
-	gatewayID, err := CallingGateway(ctx, s.gateways)
+	gatewayID, err := GatewayIDFromMetadata(ctx, s.gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (s *Server) ReportScan(ctx context.Context, req *gatewayv1.ReportScanReques
 	if err := validateScan(req.GetSerialNumbers()); err != nil {
 		return nil, err
 	}
-	gatewayID, err := CallingGateway(ctx, s.gateways)
+	gatewayID, err := GatewayIDFromMetadata(ctx, s.gateways)
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +80,12 @@ func (s *Server) ReportScan(ctx context.Context, req *gatewayv1.ReportScanReques
 	return &gatewayv1.ReportScanResponse{Robots: robotsToProto(robots)}, nil
 }
 
-// CallingGateway reads the calling gateway's ID from the metadata and marks
-// the gateway as seen. A missing or malformed ID is UNAUTHENTICATED, an
-// unregistered gateway PERMISSION_DENIED. Other errors are returned as they are.
-func CallingGateway(ctx context.Context, gateways GatewayService) (uuid.UUID, error) {
+// GatewayIDFromMetadata returns the calling gateway's ID, read from the
+// x-gateway-id metadata. It also checks that the gateway is registered and
+// marks it as seen, since every call is contact from the gateway. A missing
+// or malformed ID is UNAUTHENTICATED, an unregistered gateway
+// PERMISSION_DENIED. Other errors are returned as they are.
+func GatewayIDFromMetadata(ctx context.Context, gateways GatewayService) (uuid.UUID, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	values := md.Get(GatewayIDKey)
 	if len(values) != 1 {

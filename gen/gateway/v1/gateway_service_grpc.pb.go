@@ -36,8 +36,9 @@ type GatewayServiceClient interface {
 	ListRobots(ctx context.Context, in *ListRobotsRequest, opts ...grpc.CallOption) (*ListRobotsResponse, error)
 	// Reports the result of a scan: the full list of robots connected to the
 	// gateway. Robots seen for the first time get a robotId; known robots
-	// keep theirs. Robots missing from the list are kept. Sending the same
-	// list twice changes nothing.
+	// keep theirs. Robots missing from the list are kept. Every robot in the
+	// list counts as seen now; after that, its measurements keep it seen.
+	// Sending the same list again changes no robot or robotId.
 	//
 	// INVALID_ARGUMENT if a serial number is empty or appears twice.
 	ReportScan(ctx context.Context, in *ReportScanRequest, opts ...grpc.CallOption) (*ReportScanResponse, error)
@@ -84,8 +85,9 @@ type GatewayServiceServer interface {
 	ListRobots(context.Context, *ListRobotsRequest) (*ListRobotsResponse, error)
 	// Reports the result of a scan: the full list of robots connected to the
 	// gateway. Robots seen for the first time get a robotId; known robots
-	// keep theirs. Robots missing from the list are kept. Sending the same
-	// list twice changes nothing.
+	// keep theirs. Robots missing from the list are kept. Every robot in the
+	// list counts as seen now; after that, its measurements keep it seen.
+	// Sending the same list again changes no robot or robotId.
 	//
 	// INVALID_ARGUMENT if a serial number is empty or appears twice.
 	ReportScan(context.Context, *ReportScanRequest) (*ReportScanResponse, error)

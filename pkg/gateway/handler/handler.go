@@ -128,8 +128,8 @@ func Problem(code int, detail string) fleetv1.Problem {
 	return p
 }
 
-// RobotToREST maps a robot to its REST representation at now. No
-// measurements are stored yet, so latest is always null.
+// RobotToREST maps a robot to its REST representation at now, with its
+// newest measurement as latest (null if none arrived yet).
 func RobotToREST(r robotdomain.Robot, now time.Time) fleetv1.Robot {
 	out := fleetv1.Robot{
 		RobotId:      r.ID,
@@ -139,7 +139,35 @@ func RobotToREST(r robotdomain.Robot, now time.Time) fleetv1.Robot {
 		Connectivity: fleetv1.Connectivity(gatewaydomain.ConnectivityAt(r.LastSeenAt, now)),
 		LastSeenAt:   optTime(r.LastSeenAt),
 	}
-	out.Latest.SetToNull()
+	if r.Latest != nil {
+		out.Latest = fleetv1.NewOptNilMeasurement(MeasurementToREST(*r.Latest))
+	} else {
+		out.Latest.SetToNull()
+	}
+	return out
+}
+
+// MeasurementToREST maps a measurement to its REST representation; values
+// that were not reported are null.
+func MeasurementToREST(m robotdomain.Measurement) fleetv1.Measurement {
+	out := fleetv1.Measurement{
+		Activity:         fleetv1.Activity(m.Activity),
+		ActiveFaultCodes: m.ActiveFaultCodes,
+		MeasuredAt:       m.MeasuredAt,
+	}
+	if out.ActiveFaultCodes == nil {
+		out.ActiveFaultCodes = []string{}
+	}
+	if m.BatteryPct != nil {
+		out.BatteryPct = fleetv1.NewOptNilFloat64(*m.BatteryPct)
+	} else {
+		out.BatteryPct.SetToNull()
+	}
+	if p := m.Position; p != nil {
+		out.Position = fleetv1.NewOptNilPosition(fleetv1.Position{MapId: p.MapID, X: p.X, Y: p.Y, HeadingRad: p.HeadingRad})
+	} else {
+		out.Position.SetToNull()
+	}
 	return out
 }
 

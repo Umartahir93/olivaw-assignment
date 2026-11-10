@@ -1,6 +1,9 @@
 // Package simulator models robots that produce plausible telemetry: they
 // drive between random points on a map, use battery while doing so, and
 // return to a charger when the battery runs low.
+//
+// Like cmd/simulator, it was written with the least effort, as part of the
+// assignment: just enough behaviour for the telemetry to look plausible.
 package simulator
 
 import (

@@ -268,7 +268,7 @@ func decodeListRobotFaultsParams(args [1]string, argsEscaped bool, r *http.Reque
 						return err
 					}
 
-					c, err := conv.ToDateTime(val)
+					c, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", val)
 					if err != nil {
 						return err
 					}
@@ -309,7 +309,7 @@ func decodeListRobotFaultsParams(args [1]string, argsEscaped bool, r *http.Reque
 						return err
 					}
 
-					c, err := conv.ToDateTime(val)
+					c, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", val)
 					if err != nil {
 						return err
 					}
@@ -438,7 +438,7 @@ func decodeListRobotMeasurementsParams(args [1]string, argsEscaped bool, r *http
 						return err
 					}
 
-					c, err := conv.ToDateTime(val)
+					c, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", val)
 					if err != nil {
 						return err
 					}
@@ -479,7 +479,7 @@ func decodeListRobotMeasurementsParams(args [1]string, argsEscaped bool, r *http
 						return err
 					}
 
-					c, err := conv.ToDateTime(val)
+					c, err := time.Parse("2006-01-02T15:04:05.999999999Z07:00", val)
 					if err != nil {
 						return err
 					}

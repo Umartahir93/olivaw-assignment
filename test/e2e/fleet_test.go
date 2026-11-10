@@ -198,16 +198,21 @@ func (g gateway) reportMeasurement(t *testing.T, m *gatewayv1.Measurement) error
 }
 
 // reportFault sends one fault as the gateway.
-func (g gateway) reportFault(t *testing.T, robotID, code string) error {
+func (g gateway) reportFault(t *testing.T, f *gatewayv1.Fault) error {
 	t.Helper()
-	_, err := robotService.ReportFault(asGateway(t, g.id.String()), &gatewayv1.ReportFaultRequest{Fault: &gatewayv1.Fault{
+	_, err := robotService.ReportFault(asGateway(t, g.id.String()), &gatewayv1.ReportFaultRequest{Fault: f})
+	return err
+}
+
+// fault returns a critical fault of the robot that occurred now.
+func fault(robotID, code string) *gatewayv1.Fault {
+	return &gatewayv1.Fault{
 		RobotId:    robotID,
 		Code:       code,
 		Severity:   gatewayv1.Fault_SEVERITY_CRITICAL,
 		Message:    "motor overheated",
-		OccurredAt: timestamppb.Now(),
-	}})
-	return err
+		OccurredAt: timestamppb.New(now()),
+	}
 }
 
 // measurement returns a valid measurement of the robot.
@@ -217,8 +222,14 @@ func measurement(robotID string, batteryPct float64) *gatewayv1.Measurement {
 		BatteryPct: proto.Float64(batteryPct),
 		Position:   &gatewayv1.Position{MapId: "floor-1", X: 12.5, Y: 3, HeadingRad: 1.57},
 		Activity:   gatewayv1.Activity_ACTIVITY_MOVING,
-		MeasuredAt: timestamppb.New(time.Now()),
+		MeasuredAt: timestamppb.New(now()),
 	}
+}
+
+// now returns the current time with the microsecond precision the system
+// stores, so what a test sends compares equal to what it reads back.
+func now() time.Time {
+	return time.Now().UTC().Truncate(time.Microsecond)
 }
 
 func robotIDs(robots []*gatewayv1.Robot) map[string]string {
@@ -227,4 +238,33 @@ func robotIDs(robots []*gatewayv1.Robot) map[string]string {
 		ids[r.GetSerialNumber()] = r.GetRobotId()
 	}
 	return ids
+}
+
+// robotMeasurements returns the robot's measurements of the last 24 hours,
+// oldest first.
+func robotMeasurements(t *testing.T, robotID string) []fleetv1.Measurement {
+	t.Helper()
+	res, err := rest.ListRobotMeasurements(t.Context(), fleetv1.ListRobotMeasurementsParams{RobotId: uuid.MustParse(robotID)})
+	if err != nil {
+		t.Fatalf("list measurements of robot %s: %v", robotID, err)
+	}
+	list, ok := res.(*fleetv1.MeasurementList)
+	if !ok {
+		t.Fatalf("list measurements of robot %s: got %T", robotID, res)
+	}
+	return list.Items
+}
+
+// robotFaults returns the robot's faults of the last 24 hours, oldest first.
+func robotFaults(t *testing.T, robotID string) []fleetv1.Fault {
+	t.Helper()
+	res, err := rest.ListRobotFaults(t.Context(), fleetv1.ListRobotFaultsParams{RobotId: uuid.MustParse(robotID)})
+	if err != nil {
+		t.Fatalf("list faults of robot %s: %v", robotID, err)
+	}
+	list, ok := res.(*fleetv1.FaultList)
+	if !ok {
+		t.Fatalf("list faults of robot %s: got %T", robotID, res)
+	}
+	return list.Items
 }

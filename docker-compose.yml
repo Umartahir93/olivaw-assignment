@@ -38,12 +38,15 @@ services:
       timeout: 3s
       retries: 15
 
-  # The gateway simulator, sending its robots' measurements to the server.
+  # The gateway simulator, sending its robots' measurements to the server. It
+  # is only the gateway: an operator registers it over REST first, so it only
+  # starts on demand with that gatewayId (`make simulate GATEWAY_ID=...`).
   simulator:
+    profiles: [simulator]
     build:
       context: .
       target: simulator
-    command: ["-server", "fleet:9090", "-rest", "http://fleet:8080", "-robots", "5"]
+    command: ["-server", "fleet:9090", "-gateway-id", "${GATEWAY_ID:-}", "-robots", "5"]
     depends_on:
       fleet:
         condition: service_healthy

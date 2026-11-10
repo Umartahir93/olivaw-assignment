@@ -1,6 +1,22 @@
 // Command simulator is a virtual gateway: it scans its simulated robots,
 // reports them to the system and sends one measurement per robot every
-// interval.
+// interval. Once started it keeps sending until it is stopped: a failed
+// measurement does not stop it, and the startup scan is retried until the
+// server answers.
+//
+// It is only the gateway: registering it is an operator's job over the
+// REST API, done before the simulator starts; the simulator gets the
+// resulting gatewayId with -gateway-id. See README.md.
+//
+// It was written with the least effort, as part of the assignment: it only
+// has to drive the server with realistic traffic, and the server side is
+// the focus. It is not a reference implementation of the gateway contract
+// in apispecs/grpc. What it leaves out:
+//   - faults: it never calls ReportFault and reports no active fault codes;
+//   - delivery rules (docs/decisions.md, 11): a failed measurement is
+//     logged and dropped, with no buffer, retries or dead-letter queue;
+//   - rescans: it scans once at startup; robots never join, leave or go
+//     silent, so none of them ever turns offline.
 package main
 
 import (
@@ -16,9 +32,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	gatewayv1 "github.com/umartahir93/olivaw-assignment/gen/gateway/v1"
 	gatewaygrpc "github.com/umartahir93/olivaw-assignment/pkg/gateway/grpc"
@@ -27,9 +46,7 @@ import (
 
 var (
 	server    = flag.String("server", "localhost:9090", "gRPC server address")
-	restURL   = flag.String("rest", "http://localhost:8080", "REST API base URL, used to register the gateway")
-	gatewayID = flag.String("gateway-id", "", "gatewayId of an already registered gateway (default: register a new one)")
-	location  = flag.String("location", "Simulated site", "location of a newly registered gateway")
+	gatewayID = flag.String("gateway-id", "", "gatewayId of the gateway, from its registration over REST (required)")
 	robots    = flag.Int("robots", 10, "number of simulated robots")
 	interval  = flag.Duration("interval", time.Second, "time between two measurements of one robot")
 	logLevel  slog.Level
@@ -55,13 +72,11 @@ func run() error {
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 
-	if *gatewayID == "" {
-		id, err := register(context.Background(), *restURL, *location)
-		if err != nil {
-			return err
-		}
-		*gatewayID = id
-		log.Info("gateway registered", "gateway_id", id)
+	// Registering the gateway is an operator's job over REST (POST
+	// /v1/gateways, or `make register-gateway`); the simulator is only the
+	// gateway and starts from the gatewayId it was given.
+	if _, err := uuid.Parse(*gatewayID); err != nil {
+		return errors.New("-gateway-id is required: register the gateway over REST first (make register-gateway) and pass its gatewayId")
 	}
 	log = log.With("gateway_id", *gatewayID)
 
@@ -86,8 +101,11 @@ func run() error {
 	for i := range fleet {
 		fleet[i] = simulator.NewRobot(robotSerial(*gatewayID, i+1), rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64())))
 	}
-	if err := scan(ctx, gateways, fleet, log); err != nil {
+	if err := scanUntilDone(ctx, gateways, fleet, log); err != nil {
 		return err
+	}
+	if ctx.Err() != nil {
+		return nil // stopped before the first scan went through
 	}
 
 	log.Info("sending measurements", "robots", len(fleet), "server", *server, "interval", interval.String())
@@ -98,6 +116,37 @@ func run() error {
 	wg.Wait()
 	log.Info("stopped")
 	return nil
+}
+
+// Backoff between two scan attempts: it doubles after every failure, up to
+// maxBackoff.
+const (
+	firstBackoff = time.Second
+	maxBackoff   = 30 * time.Second
+)
+
+// scanUntilDone repeats scan until it succeeds, so a simulator started
+// before the server, or during an outage, starts sending once the server is
+// back. Errors a retry cannot fix (INVALID_ARGUMENT, UNAUTHENTICATED) end
+// it; so does ctx.
+func scanUntilDone(ctx context.Context, client gatewayv1.GatewayServiceClient, fleet []*simulator.Robot, log *slog.Logger) error {
+	backoff := firstBackoff
+	for {
+		err := scan(ctx, client, fleet, log)
+		switch status.Code(err) {
+		case codes.OK:
+			return nil
+		case codes.InvalidArgument, codes.Unauthenticated:
+			return err
+		}
+		log.Warn("scan failed, retrying", "error", err, "retry_in", backoff.String())
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(backoff):
+		}
+		backoff = min(2*backoff, maxBackoff)
+	}
 }
 
 // scan asks the system which robots it already knows for this gateway,
