@@ -1,0 +1,21 @@
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    # Naming, package layout and request/response conventions.
+    - STANDARD
+    # The proto is the API-first contract, so every service, RPC, message and
+    # enum must say what it is for. Fields and enum values are left out on
+    # purpose: forcing a comment on `x` or `ACTIVITY_IDLE` only adds noise.
+    - COMMENT_SERVICE
+    - COMMENT_RPC
+    - COMMENT_MESSAGE
+    - COMMENT_ENUM
+  # No `buf:lint:ignore` escape hatches.
+  disallow_comment_ignores: true
+breaking:
+  use:
+    # Strictest level: also catches moving types between files, which changes
+    # generated Go code.
+    - FILE

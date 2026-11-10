@@ -1,0 +1,18 @@
+version: v2
+# Delete gen/ before generating, so files from renamed or removed protos do
+# not linger.
+clean: true
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/umartahir93/olivaw-assignment/gen
+plugins:
+  - local: protoc-gen-go
+    out: gen
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: gen
+    opt: paths=source_relative
+inputs:
+  - directory: proto

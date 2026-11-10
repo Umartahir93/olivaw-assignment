@@ -1,0 +1,9 @@
+# Tools installed by `make tools`
+/bin/
+
+# IDE
+/.idea/
+/.vscode/
+
+# OS
+.DS_Store
