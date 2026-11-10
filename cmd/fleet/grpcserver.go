@@ -1,17 +1,19 @@
 package main
 
 import (
-	"github.com/umartahir93/olivaw-assignment/pkg/telemetry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	telemetryv1 "github.com/umartahir93/olivaw-assignment/gen/telemetry/v1"
+	gatewayv1 "github.com/umartahir93/olivaw-assignment/gen/gateway/v1"
+	"github.com/umartahir93/olivaw-assignment/pkg/telemetry/adapter"
 )
 
-// newGRPCServer returns a gRPC server with the TelemetryService registered.
+// newGRPCServer returns a gRPC server with the gateway-facing services
+// registered.
 func newGRPCServer() *grpc.Server {
 	srv := grpc.NewServer()
-	telemetryv1.RegisterTelemetryServiceServer(srv, &telemetry.Server{})
+	gatewayv1.RegisterGatewayServiceServer(srv, &adapter.GatewayServer{})
+	gatewayv1.RegisterRobotServiceServer(srv, &adapter.RobotServer{})
 	reflection.Register(srv)
 	return srv
 }

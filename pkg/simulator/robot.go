@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	telemetryv1 "github.com/umartahir93/olivaw-assignment/gen/telemetry/v1"
+	gatewayv1 "github.com/umartahir93/olivaw-assignment/gen/gateway/v1"
 )
 
 const (
@@ -33,11 +33,13 @@ const chargerX, chargerY = 0.0, 0.0
 
 // Robot is one simulated robot. It is not safe for concurrent use.
 type Robot struct {
+	SerialNumber string
+	// ID is the robotId the system assigned; set after the gateway's scan.
 	ID string
 
 	x, y, heading float64
 	battery       float64
-	activity      telemetryv1.Activity
+	activity      gatewayv1.Activity
 
 	targetX, targetY float64
 	toCharger        bool
@@ -47,30 +49,30 @@ type Robot struct {
 
 // NewRobot returns an idle robot at a random position with 50 to 100 %
 // battery. rng drives all its random choices.
-func NewRobot(id string, rng *rand.Rand) *Robot {
+func NewRobot(serialNumber string, rng *rand.Rand) *Robot {
 	return &Robot{
-		ID:       id,
-		x:        rng.Float64() * mapSize,
-		y:        rng.Float64() * mapSize,
-		battery:  50 + rng.Float64()*50,
-		activity: telemetryv1.Activity_ACTIVITY_IDLE,
-		rng:      rng,
+		SerialNumber: serialNumber,
+		x:            rng.Float64() * mapSize,
+		y:            rng.Float64() * mapSize,
+		battery:      50 + rng.Float64()*50,
+		activity:     gatewayv1.Activity_ACTIVITY_IDLE,
+		rng:          rng,
 	}
 }
 
-// Step advances the robot by dt and returns its state as a reading taken at
-// now.
-func (r *Robot) Step(dt time.Duration, now time.Time) *telemetryv1.TelemetryReading {
+// Step advances the robot by dt and returns its state as a measurement
+// taken at now.
+func (r *Robot) Step(dt time.Duration, now time.Time) *gatewayv1.Measurement {
 	secs := dt.Seconds()
 
 	switch r.activity {
-	case telemetryv1.Activity_ACTIVITY_CHARGING:
+	case gatewayv1.Activity_ACTIVITY_CHARGING:
 		r.battery += chargeRate * secs
 		if r.battery >= 100 {
 			r.battery = 100
-			r.activity = telemetryv1.Activity_ACTIVITY_IDLE
+			r.activity = gatewayv1.Activity_ACTIVITY_IDLE
 		}
-	case telemetryv1.Activity_ACTIVITY_MOVING:
+	case gatewayv1.Activity_ACTIVITY_MOVING:
 		r.battery -= drainMoving * secs
 		if r.moveTowardTarget(speed * secs) {
 			r.arrive()
@@ -82,27 +84,28 @@ func (r *Robot) Step(dt time.Duration, now time.Time) *telemetryv1.TelemetryRead
 		}
 	}
 
-	if r.battery < lowBattery && !r.toCharger && r.activity != telemetryv1.Activity_ACTIVITY_CHARGING {
+	if r.battery < lowBattery && !r.toCharger && r.activity != gatewayv1.Activity_ACTIVITY_CHARGING {
 		r.driveTo(chargerX, chargerY, true)
 	}
 	r.battery = max(r.battery, 0)
 
-	return &telemetryv1.TelemetryReading{
+	return &gatewayv1.Measurement{
+		RobotId:    r.ID,
 		BatteryPct: proto.Float64(r.battery),
-		Position: &telemetryv1.Position{
+		Position: &gatewayv1.Position{
 			MapId:      mapID,
 			X:          r.x,
 			Y:          r.y,
 			HeadingRad: r.heading,
 		},
 		Activity:   r.activity,
-		RecordedAt: timestamppb.New(now),
+		MeasuredAt: timestamppb.New(now),
 	}
 }
 
 func (r *Robot) driveTo(x, y float64, toCharger bool) {
 	r.targetX, r.targetY, r.toCharger = x, y, toCharger
-	r.activity = telemetryv1.Activity_ACTIVITY_MOVING
+	r.activity = gatewayv1.Activity_ACTIVITY_MOVING
 }
 
 // moveTowardTarget moves up to distance metres and reports whether the
@@ -123,8 +126,8 @@ func (r *Robot) moveTowardTarget(distance float64) bool {
 func (r *Robot) arrive() {
 	if r.toCharger {
 		r.toCharger = false
-		r.activity = telemetryv1.Activity_ACTIVITY_CHARGING
+		r.activity = gatewayv1.Activity_ACTIVITY_CHARGING
 		return
 	}
-	r.activity = telemetryv1.Activity_ACTIVITY_IDLE
+	r.activity = gatewayv1.Activity_ACTIVITY_IDLE
 }

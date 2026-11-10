@@ -55,35 +55,113 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/v1/robots"
+		case '/': // Prefix: "/v1/"
 
-			if l := len("/v1/robots"); len(elem) >= l && elem[0:l] == "/v1/robots" {
+			if l := len("/v1/"); len(elem) >= l && elem[0:l] == "/v1/" {
 				elem = elem[l:]
 			} else {
 				break
 			}
 
 			if len(elem) == 0 {
-				switch r.Method {
-				case "GET":
-					s.handleListRobotsRequest([0]string{}, elemIsEscaped, w, r)
-				case "POST":
-					s.handleCreateRobotRequest([0]string{}, elemIsEscaped, w, r)
-				default:
-					s.notAllowed(w, r, notAllowedParams{
-						allowedMethods: "GET,POST",
-						allowedHeaders: rn1AllowedHeaders,
-						acceptPost:     "application/json",
-						acceptPatch:    "",
-					})
-				}
-
-				return
+				break
 			}
 			switch elem[0] {
-			case '/': // Prefix: "/"
+			case 'g': // Prefix: "gateways"
 
-				if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+				if l := len("gateways"); len(elem) >= l && elem[0:l] == "gateways" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					switch r.Method {
+					case "GET":
+						s.handleListGatewaysRequest([0]string{}, elemIsEscaped, w, r)
+					case "POST":
+						s.handleCreateGatewayRequest([0]string{}, elemIsEscaped, w, r)
+					default:
+						s.notAllowed(w, r, notAllowedParams{
+							allowedMethods: "GET,POST",
+							allowedHeaders: rn1AllowedHeaders,
+							acceptPost:     "application/json",
+							acceptPatch:    "",
+						})
+					}
+
+					return
+				}
+				switch elem[0] {
+				case '/': // Prefix: "/"
+
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "gatewayId"
+					// Match until "/"
+					idx := strings.IndexByte(elem, '/')
+					if idx < 0 {
+						idx = len(elem)
+					}
+					args[0] = elem[:idx]
+					elem = elem[idx:]
+
+					if len(elem) == 0 {
+						switch r.Method {
+						case "GET":
+							s.handleGetGatewayRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/robots"
+
+						if l := len("/robots"); len(elem) >= l && elem[0:l] == "/robots" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch r.Method {
+							case "GET":
+								s.handleListGatewayRobotsRequest([1]string{
+									args[0],
+								}, elemIsEscaped, w, r)
+							default:
+								s.notAllowed(w, r, notAllowedParams{
+									allowedMethods: "GET",
+									allowedHeaders: nil,
+									acceptPost:     "",
+									acceptPatch:    "",
+								})
+							}
+
+							return
+						}
+
+					}
+
+				}
+
+			case 'r': // Prefix: "robots/"
+
+				if l := len("robots/"); len(elem) >= l && elem[0:l] == "robots/" {
 					elem = elem[l:]
 				} else {
 					break
@@ -100,17 +178,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				if len(elem) == 0 {
 					switch r.Method {
-					case "DELETE":
-						s.handleDecommissionRobotRequest([1]string{
-							args[0],
-						}, elemIsEscaped, w, r)
 					case "GET":
 						s.handleGetRobotRequest([1]string{
 							args[0],
 						}, elemIsEscaped, w, r)
 					default:
 						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "DELETE,GET",
+							allowedMethods: "GET",
 							allowedHeaders: nil,
 							acceptPost:     "",
 							acceptPatch:    "",
@@ -159,9 +233,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							return
 						}
 
-					case 't': // Prefix: "telemetry"
+					case 'm': // Prefix: "measurements"
 
-						if l := len("telemetry"); len(elem) >= l && elem[0:l] == "telemetry" {
+						if l := len("measurements"); len(elem) >= l && elem[0:l] == "measurements" {
 							elem = elem[l:]
 						} else {
 							break
@@ -171,7 +245,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							// Leaf node.
 							switch r.Method {
 							case "GET":
-								s.handleListRobotTelemetryRequest([1]string{
+								s.handleListRobotMeasurementsRequest([1]string{
 									args[0],
 								}, elemIsEscaped, w, r)
 							default:
@@ -278,42 +352,116 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/v1/robots"
+		case '/': // Prefix: "/v1/"
 
-			if l := len("/v1/robots"); len(elem) >= l && elem[0:l] == "/v1/robots" {
+			if l := len("/v1/"); len(elem) >= l && elem[0:l] == "/v1/" {
 				elem = elem[l:]
 			} else {
 				break
 			}
 
 			if len(elem) == 0 {
-				switch method {
-				case "GET":
-					r.name = ListRobotsOperation
-					r.summary = "List robots with their current state"
-					r.operationID = "listRobots"
-					r.operationGroup = ""
-					r.pathPattern = "/v1/robots"
-					r.args = args
-					r.count = 0
-					return r, true
-				case "POST":
-					r.name = CreateRobotOperation
-					r.summary = "Onboard a robot"
-					r.operationID = "createRobot"
-					r.operationGroup = ""
-					r.pathPattern = "/v1/robots"
-					r.args = args
-					r.count = 0
-					return r, true
-				default:
-					return
-				}
+				break
 			}
 			switch elem[0] {
-			case '/': // Prefix: "/"
+			case 'g': // Prefix: "gateways"
 
-				if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+				if l := len("gateways"); len(elem) >= l && elem[0:l] == "gateways" {
+					elem = elem[l:]
+				} else {
+					break
+				}
+
+				if len(elem) == 0 {
+					switch method {
+					case "GET":
+						r.name = ListGatewaysOperation
+						r.summary = "List gateways"
+						r.operationID = "listGateways"
+						r.operationGroup = ""
+						r.pathPattern = "/v1/gateways"
+						r.args = args
+						r.count = 0
+						return r, true
+					case "POST":
+						r.name = CreateGatewayOperation
+						r.summary = "Register a gateway"
+						r.operationID = "createGateway"
+						r.operationGroup = ""
+						r.pathPattern = "/v1/gateways"
+						r.args = args
+						r.count = 0
+						return r, true
+					default:
+						return
+					}
+				}
+				switch elem[0] {
+				case '/': // Prefix: "/"
+
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					// Param: "gatewayId"
+					// Match until "/"
+					idx := strings.IndexByte(elem, '/')
+					if idx < 0 {
+						idx = len(elem)
+					}
+					args[0] = elem[:idx]
+					elem = elem[idx:]
+
+					if len(elem) == 0 {
+						switch method {
+						case "GET":
+							r.name = GetGatewayOperation
+							r.summary = "Get a gateway"
+							r.operationID = "getGateway"
+							r.operationGroup = ""
+							r.pathPattern = "/v1/gateways/{gatewayId}"
+							r.args = args
+							r.count = 1
+							return r, true
+						default:
+							return
+						}
+					}
+					switch elem[0] {
+					case '/': // Prefix: "/robots"
+
+						if l := len("/robots"); len(elem) >= l && elem[0:l] == "/robots" {
+							elem = elem[l:]
+						} else {
+							break
+						}
+
+						if len(elem) == 0 {
+							// Leaf node.
+							switch method {
+							case "GET":
+								r.name = ListGatewayRobotsOperation
+								r.summary = "List a gateway's robots and their current state"
+								r.operationID = "listGatewayRobots"
+								r.operationGroup = ""
+								r.pathPattern = "/v1/gateways/{gatewayId}/robots"
+								r.args = args
+								r.count = 1
+								return r, true
+							default:
+								return
+							}
+						}
+
+					}
+
+				}
+
+			case 'r': // Prefix: "robots/"
+
+				if l := len("robots/"); len(elem) >= l && elem[0:l] == "robots/" {
 					elem = elem[l:]
 				} else {
 					break
@@ -330,18 +478,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 				if len(elem) == 0 {
 					switch method {
-					case "DELETE":
-						r.name = DecommissionRobotOperation
-						r.summary = "Decommission a robot"
-						r.operationID = "decommissionRobot"
-						r.operationGroup = ""
-						r.pathPattern = "/v1/robots/{robotId}"
-						r.args = args
-						r.count = 1
-						return r, true
 					case "GET":
 						r.name = GetRobotOperation
-						r.summary = "Get a robot with its current state"
+						r.summary = "Get a robot and its current state"
 						r.operationID = "getRobot"
 						r.operationGroup = ""
 						r.pathPattern = "/v1/robots/{robotId}"
@@ -390,9 +529,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							}
 						}
 
-					case 't': // Prefix: "telemetry"
+					case 'm': // Prefix: "measurements"
 
-						if l := len("telemetry"); len(elem) >= l && elem[0:l] == "telemetry" {
+						if l := len("measurements"); len(elem) >= l && elem[0:l] == "measurements" {
 							elem = elem[l:]
 						} else {
 							break
@@ -402,11 +541,11 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							// Leaf node.
 							switch method {
 							case "GET":
-								r.name = ListRobotTelemetryOperation
-								r.summary = "List a robot's readings"
-								r.operationID = "listRobotTelemetry"
+								r.name = ListRobotMeasurementsOperation
+								r.summary = "List a robot's measurements"
+								r.operationID = "listRobotMeasurements"
 								r.operationGroup = ""
-								r.pathPattern = "/v1/robots/{robotId}/telemetry"
+								r.pathPattern = "/v1/robots/{robotId}/measurements"
 								r.args = args
 								r.count = 1
 								return r, true

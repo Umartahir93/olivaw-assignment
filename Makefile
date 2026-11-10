@@ -88,8 +88,8 @@ grpc-breaking: $(BUF) ## Fail if the contract breaks clients built against BREAK
 grpc-check: grpc-lint grpc-format-check ## Lint and format check (run before every commit).
 
 .PHONY: grpc-generate
-grpc-generate: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) ## Generate the gRPC code into ./gen/telemetry.
-	rm -rf gen/telemetry
+grpc-generate: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) ## Generate the gRPC code into ./gen/gateway.
+	rm -rf gen/gateway
 	$(BUF) generate $(GRPC_DIR) --template $(GRPC_DIR)/buf.gen.yaml
 
 ##@ REST (apispecs/rest)

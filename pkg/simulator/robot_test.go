@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	telemetryv1 "github.com/umartahir93/olivaw-assignment/gen/telemetry/v1"
+	gatewayv1 "github.com/umartahir93/olivaw-assignment/gen/gateway/v1"
 )
 
 func newTestRobot(seed uint64) *Robot {
-	return NewRobot("r-test", rand.New(rand.NewPCG(seed, seed)))
+	return NewRobot("SN-TEST", rand.New(rand.NewPCG(seed, seed)))
 }
 
 func TestReadingsStayPlausible(t *testing.T) {
@@ -28,8 +28,8 @@ func TestReadingsStayPlausible(t *testing.T) {
 			if p := reading.GetPosition(); p.GetX() < 0 || p.GetX() > mapSize || p.GetY() < 0 || p.GetY() > mapSize {
 				t.Fatalf("seed %d, step %d: position (%v, %v) outside the map", seed, i, p.GetX(), p.GetY())
 			}
-			if !reading.GetRecordedAt().AsTime().Equal(now) {
-				t.Fatalf("seed %d, step %d: recorded_at %v, want %v", seed, i, reading.GetRecordedAt().AsTime(), now)
+			if !reading.GetMeasuredAt().AsTime().Equal(now) {
+				t.Fatalf("seed %d, step %d: measured_at %v, want %v", seed, i, reading.GetMeasuredAt().AsTime(), now)
 			}
 		}
 	}
@@ -40,14 +40,14 @@ func TestLowBatteryDrivesToChargerAndCharges(t *testing.T) {
 	r.battery = lowBattery - 1
 
 	reading := r.Step(time.Second, time.Now())
-	if reading.GetActivity() != telemetryv1.Activity_ACTIVITY_MOVING || !r.toCharger {
+	if reading.GetActivity() != gatewayv1.Activity_ACTIVITY_MOVING || !r.toCharger {
 		t.Fatalf("activity = %v, toCharger = %v; want moving to the charger", reading.GetActivity(), r.toCharger)
 	}
 
 	charged := false
 	for i := 0; i < 3600 && !charged; i++ {
 		reading = r.Step(time.Second, time.Now())
-		charged = reading.GetActivity() == telemetryv1.Activity_ACTIVITY_CHARGING
+		charged = reading.GetActivity() == gatewayv1.Activity_ACTIVITY_CHARGING
 	}
 	if !charged {
 		t.Fatal("robot never started charging")
@@ -59,12 +59,12 @@ func TestLowBatteryDrivesToChargerAndCharges(t *testing.T) {
 
 func TestChargingStopsAtFull(t *testing.T) {
 	r := newTestRobot(1)
-	r.activity = telemetryv1.Activity_ACTIVITY_CHARGING
+	r.activity = gatewayv1.Activity_ACTIVITY_CHARGING
 	r.battery = 99.5
 
 	reading := r.Step(time.Second, time.Now())
 
-	if reading.GetBatteryPct() != 100 || reading.GetActivity() != telemetryv1.Activity_ACTIVITY_IDLE {
+	if reading.GetBatteryPct() != 100 || reading.GetActivity() != gatewayv1.Activity_ACTIVITY_IDLE {
 		t.Fatalf("battery %v, activity %v; want 100 and idle", reading.GetBatteryPct(), reading.GetActivity())
 	}
 }

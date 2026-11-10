@@ -14,8 +14,8 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-func (s *Server) decodeCreateRobotRequest(r *http.Request) (
-	req *RobotCreate,
+func (s *Server) decodeCreateGatewayRequest(r *http.Request) (
+	req *GatewayCreate,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -62,7 +62,7 @@ func (s *Server) decodeCreateRobotRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request RobotCreate
+		var request GatewayCreate
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err

@@ -3,75 +3,111 @@ info:
   title: Olivaw Fleet API
   version: 1.0.0
   description: |
-    Onboard robots and follow what the fleet is doing: the current state of
-    every robot, and the recent telemetry and faults of each one.
+    Register gateways and follow what the fleet is doing: the current state
+    of every gateway and robot, and the recent measurements and faults of
+    each robot.
 tags:
+  - name: Gateways
+    description: Gateways and the robots connected to them.
   - name: Robots
-    description: Robots and their current state.
-  - name: History
-    description: Past telemetry and faults of one robot.
+    description: One robot, its current state and its history.
 
 paths:
-  /v1/robots:
+  /v1/gateways:
     get:
-      operationId: listRobots
-      tags: [Robots]
-      summary: List robots with their current state
+      operationId: listGateways
+      tags: [Gateways]
+      summary: List gateways
       parameters:
-        - name: connectivity
-          in: query
-          description: Only robots with this connectivity.
-          schema:
-            $ref: "#/components/schemas/Connectivity"
-        - name: status
-          in: query
-          description: Only robots with this status. Without it, all robots are listed.
-          schema:
-            $ref: "#/components/schemas/RobotStatus"
         - $ref: "#/components/parameters/Offset"
         - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: One page of robots, oldest first by registeredAt.
+          description: One page of gateways, oldest first by registeredAt.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RobotPage"
+                $ref: "#/components/schemas/GatewayPage"
         "400":
           $ref: "#/components/responses/BadRequest"
         default:
           $ref: "#/components/responses/Error"
     post:
-      operationId: createRobot
-      tags: [Robots]
-      summary: Onboard a robot
+      operationId: createGateway
+      tags: [Gateways]
+      summary: Register a gateway
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RobotCreate"
+              $ref: "#/components/schemas/GatewayCreate"
       responses:
         "201":
-          description: The robot was registered.
+          description: The gateway was registered.
           headers:
             Location:
-              description: URL of the new robot.
+              description: URL of the new gateway.
               schema:
                 type: string
                 format: uri
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Robot"
+                $ref: "#/components/schemas/Gateway"
         "400":
           $ref: "#/components/responses/BadRequest"
         "409":
-          description: A robot with this serial number is already registered, including decommissioned robots.
+          description: A gateway with this serial number is already registered.
           content:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /v1/gateways/{gatewayId}:
+    parameters:
+      - $ref: "#/components/parameters/GatewayId"
+    get:
+      operationId: getGateway
+      tags: [Gateways]
+      summary: Get a gateway
+      responses:
+        "200":
+          description: The gateway.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gateway"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        default:
+          $ref: "#/components/responses/Error"
+
+  /v1/gateways/{gatewayId}/robots:
+    parameters:
+      - $ref: "#/components/parameters/GatewayId"
+    get:
+      operationId: listGatewayRobots
+      tags: [Gateways]
+      summary: List a gateway's robots and their current state
+      parameters:
+        - $ref: "#/components/parameters/Offset"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: One page of robots, oldest first by firstSeenAt.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotPage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
         default:
           $ref: "#/components/responses/Error"
 
@@ -81,7 +117,7 @@ paths:
     get:
       operationId: getRobot
       tags: [Robots]
-      summary: Get a robot with its current state
+      summary: Get a robot and its current state
       responses:
         "200":
           description: The robot.
@@ -95,33 +131,17 @@ paths:
           $ref: "#/components/responses/NotFound"
         default:
           $ref: "#/components/responses/Error"
-    delete:
-      operationId: decommissionRobot
-      tags: [Robots]
-      summary: Decommission a robot
-      description: |
-        The robot stays available with status `decommissioned` and no longer
-        reports new telemetry. Repeating the call also succeeds.
-      responses:
-        "204":
-          description: The robot is decommissioned.
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        default:
-          $ref: "#/components/responses/Error"
 
-  /v1/robots/{robotId}/telemetry:
+  /v1/robots/{robotId}/measurements:
     parameters:
       - $ref: "#/components/parameters/RobotId"
     get:
-      operationId: listRobotTelemetry
-      tags: [History]
-      summary: List a robot's readings
+      operationId: listRobotMeasurements
+      tags: [Robots]
+      summary: List a robot's measurements
       description: |
-        Returns readings from a time range of at most 24 hours, on any date.
-        Without `from` and `to`, that is the last 24 hours.
+        Returns measurements from a time range of at most 24 hours, on any
+        date. Without `from` and `to`, that is the last 24 hours.
       parameters:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
@@ -129,11 +149,11 @@ paths:
         - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: One page of readings, oldest first by recordedAt.
+          description: One page of measurements, oldest first by measuredAt.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TelemetryPage"
+                $ref: "#/components/schemas/MeasurementPage"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -146,7 +166,7 @@ paths:
       - $ref: "#/components/parameters/RobotId"
     get:
       operationId: listRobotFaults
-      tags: [History]
+      tags: [Robots]
       summary: List a robot's faults
       description: |
         Returns faults from a time range of at most 24 hours, on any date.
@@ -172,6 +192,13 @@ paths:
 
 components:
   parameters:
+    GatewayId:
+      name: gatewayId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     RobotId:
       name: robotId
       in: path
@@ -223,7 +250,7 @@ components:
           schema:
             $ref: "#/components/schemas/Problem"
     NotFound:
-      description: The robot does not exist.
+      description: The gateway or robot does not exist.
       content:
         application/problem+json:
           schema:
@@ -236,46 +263,38 @@ components:
             $ref: "#/components/schemas/Problem"
 
   schemas:
-    # Robots
+    # Gateways
 
-    Robot:
+    Gateway:
       type: object
-      description: A robot and its current state.
-      required: [robotId, serialNumber, location, status, registeredAt, connectivity]
+      description: A gateway and whether the system hears from it.
+      required: [gatewayId, serialNumber, location, registeredAt, connectivity]
       properties:
-        robotId:
+        gatewayId:
           type: string
           format: uuid
-          description: Assigned at onboarding.
+          description: Assigned at registration; never changes.
         serialNumber:
           type: string
+          description: Business key, from the gateway's manufacturer.
         location:
           type: string
-          description: Where the robot is deployed, e.g. "Munich HQ, floor 2".
-        status:
-          $ref: "#/components/schemas/RobotStatus"
+          description: Where the gateway is installed, e.g. "Munich HQ".
+        name:
+          type: string
+          description: Optional display name.
         registeredAt:
           type: string
           format: date-time
-        decommissionedAt:
-          type: string
-          format: date-time
-          nullable: true
-          description: Null while the robot is active.
         connectivity:
           $ref: "#/components/schemas/Connectivity"
         lastSeenAt:
           type: string
           format: date-time
           nullable: true
-          description: When data last arrived; null if never.
-        latest:
-          allOf:
-            - $ref: "#/components/schemas/TelemetryReading"
-          nullable: true
-          description: The newest reading; null if none yet.
+          description: When the gateway last called the system; null if never.
 
-    RobotCreate:
+    GatewayCreate:
       type: object
       required: [serialNumber, location]
       properties:
@@ -288,19 +307,66 @@ components:
           type: string
           minLength: 1
           maxLength: 200
-          description: Where the robot is deployed, e.g. "Munich HQ, floor 2".
+          description: Where the gateway is installed, e.g. "Munich HQ".
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Optional display name.
 
-    RobotStatus:
-      type: string
-      enum: [active, decommissioned]
+    GatewayPage:
+      type: object
+      required: [items, hasMore]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Gateway"
+        hasMore:
+          type: boolean
+          description: True if more items follow this page.
 
     Connectivity:
       type: string
       description: |
-        never_seen: no data yet. online: sending data. stale: missed a few
-        updates. offline: no data for a while; decommissioned robots end up
-        offline.
-      enum: [never_seen, online, stale, offline]
+        unknown: no contact yet. online: something arrived in the last 5
+        minutes. offline: nothing arrived for longer.
+      enum: [unknown, online, offline]
+
+    # Robots
+
+    Robot:
+      type: object
+      description: A robot and its current state.
+      required: [robotId, serialNumber, gatewayId, firstSeenAt, connectivity]
+      properties:
+        robotId:
+          type: string
+          format: uuid
+          description: Assigned when the robot is first scanned; never changes.
+        serialNumber:
+          type: string
+          description: Business key, from the robot's manufacturer.
+        gatewayId:
+          type: string
+          format: uuid
+          description: The gateway the robot is connected to.
+        firstSeenAt:
+          type: string
+          format: date-time
+          description: When a scan first reported the robot.
+        connectivity:
+          $ref: "#/components/schemas/Connectivity"
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the robot's last measurement arrived; null if never.
+        latest:
+          allOf:
+            - $ref: "#/components/schemas/Measurement"
+          nullable: true
+          description: The newest measurement; null if none yet.
 
     RobotPage:
       type: object
@@ -314,11 +380,12 @@ components:
           type: boolean
           description: True if more items follow this page.
 
-    # Telemetry and faults
+    # Measurements and faults
 
-    TelemetryReading:
+    Measurement:
       type: object
-      required: [activity, activeFaultCodes, recordedAt]
+      description: A snapshot of one robot's state at one moment.
+      required: [activity, activeFaultCodes, measuredAt]
       properties:
         batteryPct:
           type: number
@@ -331,7 +398,7 @@ components:
           allOf:
             - $ref: "#/components/schemas/Position"
           nullable: true
-          description: Null if the robot is not localized.
+          description: Null if not reported.
         activity:
           $ref: "#/components/schemas/Activity"
         activeFaultCodes:
@@ -339,10 +406,10 @@ components:
           description: Codes of the faults active at this moment; empty when all is well.
           items:
             type: string
-        recordedAt:
+        measuredAt:
           type: string
           format: date-time
-          description: When the robot took the reading.
+          description: When the measurement was taken.
 
     Position:
       type: object
@@ -374,7 +441,7 @@ components:
       type: object
       description: |
         One occurrence of a fault. While the fault is active, its code is
-        listed in the robot's activeFaultCodes.
+        listed in the robot's measurements.
       required: [code, severity, message, occurredAt]
       properties:
         code:
@@ -393,14 +460,14 @@ components:
           format: date-time
           description: When the robot detected the fault.
 
-    TelemetryPage:
+    MeasurementPage:
       type: object
       required: [items, hasMore]
       properties:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/TelemetryReading"
+            $ref: "#/components/schemas/Measurement"
         hasMore:
           type: boolean
           description: True if more items follow this page.
